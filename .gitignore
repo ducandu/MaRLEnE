@@ -35,6 +35,12 @@ wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# vagrant
+.vagrant/
+
+# pycharm
+.idea/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -52,6 +58,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+*.zip
 local_settings.py
 
 # Flask stuff:

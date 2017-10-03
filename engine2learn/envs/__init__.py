@@ -7,10 +7,10 @@
  -------------------------------------------------------------------------
 """
 
-# from .base import Env, Step
+from .base import Env, ProxyEnv, normalize
 from .env_spec import EnvSpec
 from .grid_world import GridWorld
 
-__all__ = ["Env", "EnvSpec", "GridWorld"]
+__all__ = ["Env", "EnvSpec", "GridWorld", "ProxyEnv", "normalize"]
 
 

@@ -15,7 +15,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class Box(Space):
+class Continuous(Space):
     """
     A box in R^n (each coordinate is bounded)
     """
@@ -23,9 +23,9 @@ class Box(Space):
     def __init__(self, low, high, shape=None):
         """
         Three kinds of valid input:
-            Box(0, 1) # low and high are given as integers and shape is assumed to be (1,)
-            Box(-1.0, 1.0, (3,4)) # low and high are scalars, and shape is provided
-            Box(np.array([-1.0,-2.0]), np.array([2.0,4.0])) # low and high are arrays of the same shape
+            Continuous(0, 1) # low and high are given as integers and shape is assumed to be (1,)
+            Continuous(-1.0, 1.0, (3,4)) # low and high are scalars, and shape is provided
+            Continuous(np.array([-1.0,-2.0]), np.array([2.0,4.0])) # low and high are arrays of the same shape
         """
         if shape is None:
             if isinstance(low, int) and isinstance(high, int):
@@ -76,10 +76,10 @@ class Box(Space):
         return xs.reshape((xs.shape[0],) + self.shape)
 
     def __repr__(self):
-        return "Box" + str(self.shape)
+        return "Continuous" + str(self.shape)
 
     def __eq__(self, other):
-        return isinstance(other, Box) and np.allclose(self.low, other.low) and np.allclose(self.high, other.high)
+        return isinstance(other, Continuous) and np.allclose(self.low, other.low) and np.allclose(self.high, other.high)
 
     def __hash__(self):
         return hash((self.low, self.high))

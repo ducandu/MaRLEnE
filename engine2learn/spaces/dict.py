@@ -16,8 +16,8 @@ from engine2learn.misc import special
 
 class Dict(Space, dict):
     def __init__(self, d, **kwargs):
-        # make sure all values in the given dict are actually Space objects
-        assert all(isinstance(v, Space) for v in kwargs.values())
+        # make sure all values in the given dict are actually other Space objects
+        assert all(isinstance(v, Space) for v in d.values())
         dict.__init__(self, d)
         dtypes = [c.new_tensor_variable("tmp", extra_dims=0).dtype for c in self.values()]
         if len(dtypes) > 0 and hasattr(dtypes[0], "as_numpy_dtype"):
@@ -41,6 +41,7 @@ class Dict(Space, dict):
 
     @property
     def shape(self):
+        # TODO: there may be a problem with this if we have a Dict space inside this Dict
         return tuple([self[key].flat_dim for key in sorted(self.keys())])
 
     def flatten(self, x):

@@ -12,8 +12,8 @@
 from .dict import Dict
 from .tuple import Tuple
 from .discrete import Discrete
-from .box import Box
+from .continuous import Continuous
 from .base import Space
 
-__all__ = ["Space", "Discrete", "Box", "Tuple", "Dict"]
+__all__ = ["Space", "Discrete", "Continuous", "Tuple", "Dict"]
 

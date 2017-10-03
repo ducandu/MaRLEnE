@@ -169,7 +169,7 @@ class GridWorld(Env):
 
     @property
     def observation_space(self):
-        return spaces.Dict({"pos": spaces.Discrete(self.n_row * self.n_col), "_reward": spaces.Box(-1, 1), "_done": spaces.Discrete(2)})
+        return spaces.Dict({"pos": spaces.Discrete(self.n_row * self.n_col), "_reward": spaces.Continuous(-1, 1), "_done": spaces.Discrete(2)})
 
     @property
     def horizon(self):

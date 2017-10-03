@@ -41,9 +41,13 @@ class Discrete(Space):
         return x.shape == () and x.dtype.kind == 'i' and x >= 0 and x < self.n
 
     def flatten(self, x):
+        # special case: only two possible states (bool) -> make it just 1D vector with one element with values either 0 or 1
+        if self.n == 2:
+            return np.zeros(1) if x == 0 else np.ones(1)  # x can only be 0 or 1 (only two states)
         return special.to_one_hot(x, self.n)
 
     def unflatten(self, x):
+        # TODO: fix these for n==2
         return special.from_one_hot(x)
 
     def flatten_batch(self, x):

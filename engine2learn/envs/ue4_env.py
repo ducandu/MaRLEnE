@@ -11,14 +11,22 @@
  -------------------------------------------------------------------------
 """
 
-from .base import Env
+from .remote_env import RemoteEnv
 from engine2learn import spaces
 from cached_property import cached_property
 
 
-class UE4Env(Env):
-    def __init__(self, **kwargs):
-        super().__init__()
+class UE4Env(RemoteEnv):
+    """
+    A special RemoteEnv for UE4 game connections.
+    Communicates with the remote to receive information on the definitions of action- and observation spaces.
+    """
+    def __init__(self, host, port, **kwargs):
+        super().__init__(host, port)
+
+        # TODO: remove **kwargs (unless needed for other params)
+        # TODO: 20tab: get the action mappings, axis mappings, observation properties, observation cameras from the remote and leave the rest of this c'tor as is
+
         # list: ["Fire", "Jump", etc..] -> we don't care about the keys associated with this mapping on the UE4 side
         # all action mappings are translated to Discrete(2) (only true or false are valid values)
         self.action_mappings = kwargs.get("action_mappings")
@@ -31,14 +39,13 @@ class UE4Env(Env):
         # dict: {"Cam1": (w, h, depth), "cam2": (w, h)}  # <- no depth in cam2 means grey-scale; all pixel values are between 0 and 255
         self.observation_cameras = kwargs.get("observation_cameras")
 
-    def step(self, **kwargs):
-        return NotImplementedError
+    # not necessary: implemented by RemoteEnv
+    #def step(self, **kwargs):
+    #    return NotImplementedError
 
-    def reset(self):
-        return NotImplementedError
-
-    def current_observation(self):
-        return NotImplementedError
+    # not necessary: implemented by RemoteEnv
+    #def reset(self):
+    #    return NotImplementedError
 
     @cached_property
     def observation_space(self):

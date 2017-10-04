@@ -11,11 +11,29 @@
 """
 
 
-from .env_spec import EnvSpec
 from cached_property import cached_property
 import numpy as np
 from engine2learn.spaces import Discrete, Continuous, Dict
 import copy
+
+
+class EnvSpec(object):
+
+    def __init__(self, observation_space, action_space):
+        """
+        :param Space observation_space: The observation Space object
+        :param Space action_space: the action Space object
+        """
+        self._observation_space = observation_space
+        self._action_space = action_space
+
+    @property
+    def observation_space(self):
+        return self._observation_space
+
+    @property
+    def action_space(self):
+        return self._action_space
 
 
 class Env(object):

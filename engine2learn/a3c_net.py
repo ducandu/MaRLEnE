@@ -22,14 +22,14 @@ class A3CPolicyNetwork(Model):
 
     def construct(self):
         # define our inputs to this graph
-        s, a, _R, advantage = self.add_feeds([
+        s, a, _R, advantage = self.add_feeds(
             ([None, self.num_inputs], "s"),  # the input (state) signal
             # used to calculate loss of policy function
-            ([None], "a", tf.int32),  # the action that got selected as a single int value
+            ([None], "a", tf.int32),  # the action that got selected (single int value) in a previous(!) run through the network
             ([None], "advantage"),  # the calculated advantage (fed in separately, b/c we don't want the V-term within advantage to change the policy weights)
             # used to calculate loss of the value function
             ([None], "R"),  # the target (true discounted return) for our value function
-        ])
+        )
 
         # fully connected module (1 layer: input/hidden)
         fc = FullyConnectedModule("fc_module", [self.num_hidden], activations=tf.nn.relu)
@@ -37,8 +37,13 @@ class A3CPolicyNetwork(Model):
 
         # squeeze output through: policy output and value function
         soft_linear = SoftmaxAndLinearOutputModule("soft_linear", self.num_actions + 1, 1)
-        policy, value = soft_linear(fc_out)
-        value = tf.reshape(value, [-1])  # make value just rank=1 (1 scalar value per batch item)
+
+        with tf.name_scope("policy_and_value_output"):
+            policy, value = soft_linear(fc_out)
+            value = tf.reshape(value, [-1])  # make value just rank=1 (1 scalar value per batch item)
+        tf.summary.scalar("value", value)
+        # collect all summaries up to here for regular state -> policy/value pass-throughs
+        summary_op1 = tf.summary.merge_all()
 
         # from here on: only for worker networks, the master network doesn't really need those
         # TODO: make all this rest a 'module' class
@@ -50,9 +55,14 @@ class A3CPolicyNetwork(Model):
 
         # define one single-value loss function (it's a shared policy/value network)
         policy_loss = - tf.reduce_sum(tf.log(action_probability) * advantage)
+        summ_ploss = tf.summary.scalar("policy_loss", policy_loss)
         entropy = - tf.reduce_sum(policy * tf.log(policy))
+        summ_entropy = tf.summary.scalar("entropy", entropy)
         value_loss = 0.5 * tf.reduce_sum(tf.square(_R - value))
-        loss = policy_loss - self.beta * entropy + value_loss  # no more #num-samples dimension after this (just a single scalar)
+        summ_vloss = tf.summary.scalar("value_loss", value_loss)
+
+        loss = policy_loss + value_loss - self.beta * entropy  # no more #num-samples dimension after this (just a single scalar)
+        summ_loss = tf.summary.scalar("loss", loss)
 
         # get gradients of loss over all parameters
         local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
@@ -61,8 +71,13 @@ class A3CPolicyNetwork(Model):
         #var_norms = tf.global_norm(local_vars)
         #grads, grad_norms = tf.clip_by_global_norm(gradients, 40.0)
 
+        summary_op2 = tf.summary.merge(inputs=[summ_entropy, summ_loss, summ_ploss, summ_vloss])
+        #ssummary_op2 = tf.summary.merge(inputs=[summ_entropy, summ_loss])
+
         # TODO: implement shared RMSProp
 
         # define our outputs
-        self.add_outputs([("policy", policy), ("value", value), ("policy_loss", policy_loss),
-                          ("entropy", entropy), ("value_loss", value_loss), ("loss", loss), ("gradients", gradients)])
+        self.add_outputs(("policy", policy), ("value", value), ("policy_loss", policy_loss),
+                         ("entropy", entropy), ("value_loss", value_loss), ("loss", loss), ("gradients", gradients),
+                         ("summary_pol_val", summary_op1),
+                         ("summary_pol_grad_opt", summary_op2))

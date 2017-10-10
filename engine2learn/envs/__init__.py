@@ -7,11 +7,13 @@
  -------------------------------------------------------------------------
 """
 
-from .base import EnvSpec, Env, ProxyEnv, normalize
+from .base import EnvSpec, Env
+from .proxy_env import ProxyEnv
+from .normalized_env import NormalizedEnv, normalize
 from .grid_world import GridWorld
 from .remote_env import RemoteEnv
 from .ue4_env import UE4Env
 
-__all__ = ["EnvSpec", "Env", "ProxyEnv", "normalize", "GridWorld", "UE4Env", "RemoteEnv"]
 
+__all__ = ["EnvSpec", "Env", "ProxyEnv", "normalize", "GridWorld", "UE4Env", "RemoteEnv"]
 

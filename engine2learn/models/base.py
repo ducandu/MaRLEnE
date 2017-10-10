@@ -65,14 +65,14 @@ class Model(object):
         """
         ret = []
         for feed in feeds:
-            assert isinstance(feed, tuple) or isinstance(feed, list), "ERROR: Given feed ({}) is not a tuple (shape, name[, dtype])!".format(feed)
+            assert isinstance(feed, (tuple, list)), "ERROR: Given feed ({}) is not a tuple (shape, name[, dtype])!".format(feed)
             # dtype missing -> use tf.float32
             if len(feed) == 2:
                 typ = tf.float32
             else:
                 typ = feed[2]
-            #assert name not in self._feeds, "ERROR: feed with name {} already in our feed list!".format(name)
-            placeholder = tf.placeholder(dtype=typ, shape=feed[0], name=feed[1])
+            with tf.name_scope("input_feed"):
+                placeholder = tf.placeholder(dtype=typ, shape=feed[0], name=feed[1])
             self._feeds[feed[1]] = placeholder
             ret.append(placeholder)
         return tuple(ret)
@@ -135,7 +135,7 @@ class Model(object):
         Completely resets the Model (graph) to an empty graph, then rebuilds the graph (all variables' values will be wiped out)
         by calling the build method.
         """
-        tf.reset_default_graph()
+        #tf.reset_default_graph()  # had to take this out. It would break the with tf.device() scope and make all tensors have an empty device
         # reconstruct our graph
         self.construct()
         self._saver = tf.train.Saver()

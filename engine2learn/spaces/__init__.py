@@ -11,9 +11,11 @@
 
 from .dict import Dict
 from .tuple import Tuple
-from .discrete import Discrete
+from .discrete import Discrete, Bool
 from .continuous import Continuous
 from .base import Space
+from .normalized_space import NormalizedSpace
 
-__all__ = ["Space", "Discrete", "Continuous", "Tuple", "Dict"]
+
+__all__ = ["Space", "Discrete", "Bool", "Continuous", "Tuple", "Dict", "NormalizedSpace"]
 

@@ -1,96 +1,74 @@
 """
  -------------------------------------------------------------------------
- AIOpening - 
- grid_world
+ engine2learn - envs/cam_grid_world.py
  
- !!TODO: add file description here!! 
+ A complex grid world where we observe the state via a camera and a health
+ counter. The action_space consists of jump (Bool), moveforward and
+ turn (both Continuous).
+ This serves to test UE4-like environments with more subtle
+ action- and observation_spaces.
   
- created: 2017/08/31 in PyCharm
+ created: 2017/10/04 in PyCharm
  (c) 2017 Sven - ducandu GmbH
  -------------------------------------------------------------------------
 """
 
+from .base import Env
+from .grid_world import GridWorld
 from cached_property import cached_property
 import numpy as np
-from .base import Env
 import engine2learn.spaces as spaces
 
 
-class GridWorld(Env):
+class GridWorldComplex(GridWorld):
     """
-    A classic grid world where the action space is up,down,left,right and the
-    state space is:
+    A complex grid world where the action space is move-forward (float between -1 and 1),
+    Turn (float between -1 and 1) and jump (bool).
+
+    The state space is the same as for the simpler grid world:
     'S' : starting point
+    'F' : fire: reduces health by 10% (0% means game over)
     ' ' : free space
     'W' : wall
     'H' : hole (terminates episode) (to be replaced by W in save-mode)
     'G' : goal state (terminates episode)
     """
 
-    # all available maps
-    MAPS = {
-        "chain": [
-            "G             S             G"
-        ],
-        "2x2": [
-            "SH",
-            " G"
-        ],
-        "4x4": [
-            "S   ",
-            " H H",
-            "   H",
-            "H  G"
-        ],
-        "8x8": [
-            "S       ",
-            "        ",
-            "   H    ",
-            "     H  ",
-            "   H    ",
-            " HH   H ",
-            " H  H H ",
-            "   H   G"
-        ],
-    }
+    GridWorld.MAPS["16x16"] = [
+        "S      H        ",
+        "   H       HH   ",
+        "    FF   WWWWWWW",
+        "  H      W      ",
+        "    FF   W  H   ",
+        "         W      ",
+        "    FF   W      ",
+        "  H          H G"
+    ]
 
     def __init__(self, desc="4x4", save=False, reward_func="sparse"):
-        if isinstance(desc, str):
-            desc = self.MAPS[desc]
-        desc = np.array(list(map(list, desc)))
-        desc[desc == 'H'] = ("H" if not save else "W")  # apply safety switch
+        # new health counter
+        # gets reduced when we touch fire
+        self.health0 = self.health = None
+        self.orientation0 = self.orientation = 90  # 0=look up, 90=look right, 180=look down, 270=look left
 
-        self.desc = desc
-        self.n_row, self.n_col = desc.shape
-        (start_x,), (start_y,) = np.nonzero(desc == "S")
-
-        self.pos0 = start_x * self.n_col + start_y
-        self.pos = self.pos0
-
-        # a rich reward function gives -1 normally, 1 on end and -100 for falling into a hole
-        assert reward_func == "sparse" or reward_func == "rich"
-        self.reward_func = reward_func
-
-        self.obs_dict = {}
-        self.obs_dict = self.reset()
+        super().__init__(desc, save, reward_func)
 
     def reset(self):
         self.pos = self.pos0
-        self.obs_dict["pos"] = self.pos
+        self.orientation = self.orientation0
+        self.health = self.health0
+        self.obs_dict["camera"] = TODO: create a top-down 'image' of the env
+        self.obs_dict["health"] = self.health
         self.obs_dict["_reward"] = 0
         self.obs_dict["_done"] = False
-        return self.obs_dict
-
-    def current_observation(self):
         return self.obs_dict
 
     def step(self, **kwargs):
         """
         action map:
-        0: left
-        1: down
-        2: right
-        3: up
+        moveForward (-1.0 (backward) 0.0 or 1.0 (Forward))
+        turn (-1.0 (turn left), 0.0 or 1.0 (turn right))
+        jump: jump two fields forward
         :param any kwargs: Information on how to act next.
         action (int): An integer 0-3 that describes the next action.
         set (List[int]): A list of integers to set the current position to before acting.
@@ -174,13 +152,9 @@ class GridWorld(Env):
 
     @cached_property
     def observation_space(self):
-        return spaces.Dict({"pos": spaces.Discrete(self.n_row * self.n_col),
+        return spaces.Dict({"pos"    : spaces.Discrete(self.n_row * self.n_col),
                             "_reward": spaces.Continuous(0, 1) if self.reward_func == "sparse" else spaces.Continuous(-100, 1),
-                            "_done": spaces.Bool()})
-
-    @property
-    def horizon(self):
-        return None
+                            "_done"  : spaces.Bool()})
 
     def render(self):
         x = self.pos // self.n_col
@@ -196,3 +170,4 @@ class GridWorld(Env):
             print()
 
         print()
+

@@ -27,7 +27,7 @@ class Dict(Space, dict):
     def sample(self, seed=None):
         if seed is not None:
             np.random.seed(seed)
-        return tuple(space.sample() for space in self.values())
+        return dict({key: subspace.sample() for key, subspace in self.items()})
 
     def contains(self, x):
         return isinstance(x, dict) and all(self[key].contains(x[key]) for key in self.keys())
@@ -37,7 +37,7 @@ class Dict(Space, dict):
 
     @property
     def flat_dim(self):
-        return np.sum([c.flat_dim for c in self.values()])
+        return int(np.sum([c.flat_dim for c in self.values()]))
 
     @property
     def shape(self):

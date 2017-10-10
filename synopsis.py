@@ -10,7 +10,8 @@ from cool_ml_lib import MyPolicyNet, learn_something  # <- ducandu will code thi
 
 
 # get an Env object representing the UE4 game (with the given file name) and abiding to our Env interface
-game_env = engine2learn.connect_env("ue4", "CoolGame.ue4", **[some kwargs])
+port = 9999  # the game is listening on localhost:9999 for incoming control connections by engine2learn
+game_env = engine2learn.connect_env("ue4", "localhost", port)
 
 # initialize the game and return the first observation dict
 o = game_env.reset()

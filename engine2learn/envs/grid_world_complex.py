@@ -53,21 +53,24 @@ class GridWorldComplex(GridWorld):
         self.orientation0 = self.orientation = 90  # 0=look up, 90=look right, 180=look down, 270=look left
 
         super().__init__(desc, save, reward_func)
+
         # placeholder for our cam return image (greyscale row x col image)
         # 255=nothing
         # 200=wall or pawn
         # 50=fire
         # 0=hole
         self.cam_pix = np.zeros(shape=(self.n_row, self.n_col), dtype=int)
+        # fixed link from cam_pix into our obs_dict
+        self.obs_dict["camera"] = self.cam_pix
 
     def reset(self):
         self.pos = self.pos0
         self.orientation = self.orientation0
         self.health = self.health0
-        self.obs_dict["camera"] = self.get_cam_pixels()
         self.obs_dict["health"] = self.health
         self.obs_dict["_reward"] = 0
         self.obs_dict["_done"] = False
+        self.update_cam_pixels()
         return self.obs_dict
 
     def step(self, **kwargs):
@@ -98,8 +101,6 @@ class GridWorldComplex(GridWorld):
             self.orientation %= 360  # re-normalize orientation
 
         # move?
-        next_x = self.x
-        next_y = self.y
         next_pos = self.pos
         if "moveForward" in mappings:
             move = mappings["moveForward"]
@@ -120,9 +121,6 @@ class GridWorldComplex(GridWorld):
                 next_state_idx = np.random.choice(len(probs), p=probs)
                 next_pos = possible_next_positions[next_state_idx][0]
 
-                next_x = next_pos // self.n_col
-                next_y = next_pos % self.n_col
-
         # jump? -> move two fields forward (over walls/fires/holes w/o any damage)
         if "jump" in mappings and mappings["jump"] is True:
             # translate into classic grid world action
@@ -134,9 +132,6 @@ class GridWorldComplex(GridWorld):
                 probs = [x[1] for x in possible_next_positions]
                 next_state_idx = np.random.choice(len(probs), p=probs)
                 next_pos = possible_next_positions[next_state_idx][0]
-
-            next_x = next_pos // self.n_col
-            next_y = next_pos % self.n_col
 
         # actually move the pawn
         self.pos = next_pos
@@ -168,7 +163,7 @@ class GridWorldComplex(GridWorld):
             raise NotImplementedError
 
         # prepare the obs_dict
-        self.obs_dict["camera"] = self.get_cam_pixels()
+        self.update_cam_pixels()
         self.obs_dict["health"] = self.health
         self.obs_dict["_reward"] = reward
         self.obs_dict["_done"] = done
@@ -188,7 +183,7 @@ class GridWorldComplex(GridWorld):
             "_done":   spaces.Bool()
         })
 
-    def get_cam_pixels(self):
+    def update_cam_pixels(self):
         # 255=nothing
         # 200=wall or pawn
         # 50=fire
@@ -206,4 +201,3 @@ class GridWorldComplex(GridWorld):
                 self.cam_pix[row, col] = map_[field]
         # overwrite pawn pos
         self.cam_pix[self.y, self.x] = map_["X"]
-        return self.cam_pix

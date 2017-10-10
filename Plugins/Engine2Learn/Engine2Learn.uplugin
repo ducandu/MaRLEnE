@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Engine2Learn",
+	"Description": "Engine2Learn",
+	"Category": "Other",
+	"CreatedBy": "Ducandu GmbH",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Engine2Learn",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
+		}
+	]
+}

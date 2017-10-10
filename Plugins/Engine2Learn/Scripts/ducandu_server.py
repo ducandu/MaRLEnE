@@ -1,7 +1,7 @@
 import unreal_engine as ue
 import asyncio
 import ue_asyncio
-from unreal_engine.classes import DucanduSettings
+from unreal_engine.classes import DucanduSettings, GameplayStatics
 
 # cleanup previous tasks
 for task in asyncio.Task.all_tasks():
@@ -11,6 +11,7 @@ for task in asyncio.Task.all_tasks():
 async def new_client_connected(reader, writer):
     name = writer.get_extra_info('peername')
     ue.log('new client connection from {0}'.format(name))
+    y = 2000
     while True:
         # wait for a line
         data = await reader.readline()
@@ -23,9 +24,17 @@ async def new_client_connected(reader, writer):
                 playing_world = world
                 break
         if playing_world:
-            ue.log_warning('client {0} issued command "{1}" on world "{2}"'.format(name, data.decode(), world.get_name()))
+            for actor in playing_world.all_actors():
+                if actor.get_name() == 'Cube_2':
+                    actor.set_actor_location(700, -300, 2022 * y)
+            ue.log_warning('client {0} issued command "{1}" on world "{2}"'.format(name, data.decode().rstrip(), world.get_name()))
+            GameplayStatics.SetGamePaused(playing_world, False)
+            playing_world.world_tick(1.0/60.0)
+            # here we tick the world
+            GameplayStatics.SetGamePaused(playing_world, True)
         else:
-            ue.log_error('client {0} issued command "{1}" but no game is running'.format(name, data.decode()))
+            ue.log_error('client {0} issued command "{1}" but no game is running'.format(name, data.decode().rstrip()))
+        y += 1
     ue.log('client {0} disconnected'.format(name))
 
 # this spawns the server

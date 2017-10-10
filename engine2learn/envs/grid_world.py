@@ -60,7 +60,7 @@ class GridWorld(Env):
         desc = np.array(list(map(list, desc)))
         desc[desc == 'H'] = ("H" if not save else "W")  # apply safety switch
 
-        self.desc = desc
+        self.desc = desc  # desc needs to be indexed as y/x pairs (first row, then column), just as any matrix
         self.n_row, self.n_col = desc.shape
         (start_x,), (start_y,) = np.nonzero(desc == "S")
 
@@ -73,6 +73,14 @@ class GridWorld(Env):
 
         self.obs_dict = {}
         self.obs_dict = self.reset()
+
+    @property
+    def x(self):
+        return self.pos // self.n_col
+
+    @property
+    def y(self):
+        return self.pos % self.n_col
 
     def reset(self):
         self.pos = self.pos0
@@ -87,10 +95,10 @@ class GridWorld(Env):
     def step(self, **kwargs):
         """
         action map:
-        0: left
-        1: down
-        2: right
-        3: up
+        0: up
+        1: right
+        2: down
+        3: left
         :param any kwargs: Information on how to act next.
         action (int): An integer 0-3 that describes the next action.
         set (List[int]): A list of integers to set the current position to before acting.
@@ -121,7 +129,7 @@ class GridWorld(Env):
         if next_state_type == 'H':
             done = True
             reward = 0 if self.reward_func == "sparse" else -100
-        elif next_state_type in ['F', 'S']:
+        elif next_state_type in [' ', 'S']:
             done = False
             reward = 0 if self.reward_func == "sparse" else -1
         elif next_state_type == 'G':
@@ -154,7 +162,7 @@ class GridWorld(Env):
         y = pos % self.n_col
         coords = np.array([x, y])
 
-        increments = np.array([[-1, 0], [0, 1], [1, 0], [0, -1]])
+        increments = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
         next_coords = np.clip(
             coords + increments[action],
             [0, 0],
@@ -170,6 +178,7 @@ class GridWorld(Env):
 
     @cached_property
     def action_space(self):
+        # 4 discrete actions
         return spaces.Discrete(4, is_distribution=True)
 
     @cached_property
@@ -183,16 +192,14 @@ class GridWorld(Env):
         return None
 
     def render(self):
-        x = self.pos // self.n_col
-        y = self.pos % self.n_col
-
         # paints itself
         for row in range(len(self.desc)):
             for col, val in enumerate(self.desc[row]):
-                if x == col and y == row:
+                if self.x == col and self.y == row:
                     print("X", end="")
                 else:
-                    print(" " if val == "F" else val, end="")
+                    print(val, end="")
             print()
 
         print()
+

@@ -34,6 +34,7 @@ class GridWorldComplex(GridWorld):
     'G' : goal state (terminates episode)
     """
 
+    # add more maps to the already existing one
     GridWorld.MAPS["16x16"] = [
         "S      H        ",
         "   H       HH   ",
@@ -52,12 +53,18 @@ class GridWorldComplex(GridWorld):
         self.orientation0 = self.orientation = 90  # 0=look up, 90=look right, 180=look down, 270=look left
 
         super().__init__(desc, save, reward_func)
+        # placeholder for our cam return image (greyscale row x col image)
+        # 255=nothing
+        # 200=wall or pawn
+        # 50=fire
+        # 0=hole
+        self.cam_pix = np.zeros(shape=(self.n_row, self.n_col), dtype=int)
 
     def reset(self):
         self.pos = self.pos0
         self.orientation = self.orientation0
         self.health = self.health0
-        self.obs_dict["camera"] = TODO: create a top-down 'image' of the env
+        self.obs_dict["camera"] = self.get_cam_pixels()
         self.obs_dict["health"] = self.health
         self.obs_dict["_reward"] = 0
         self.obs_dict["_done"] = False
@@ -70,8 +77,6 @@ class GridWorldComplex(GridWorld):
         turn (-1.0 (turn left), 0.0 or 1.0 (turn right))
         jump: jump two fields forward
         :param any kwargs: Information on how to act next.
-        action (int): An integer 0-3 that describes the next action.
-        set (List[int]): A list of integers to set the current position to before acting.
         :return: A member of our observation_space (Dict sample).
         :rtype: dict
         """
@@ -79,95 +84,126 @@ class GridWorldComplex(GridWorld):
         sets = kwargs.get("set")
         if sets:
             # simply set our position to some new value
-            for instruction in sets:
-                assert isinstance(instruction, int) and 0 <= instruction < self.observation_space["pos"].flat_dim
-                self.pos = instruction
+            assert isinstance(sets, dict)
+            for key, value in sets.items():
+                assert key in ("pos", "orientation", "health")
+                self.__setattr__(key, value)
 
-        # then perform an action
-        action = kwargs.get("action", 0)  # abide to very generic Env.step interface
-        possible_next_positions = self.get_possible_next_positions(self.pos, action)
-        # determine the next state based on the transition function
-        probs = [x[1] for x in possible_next_positions]
-        next_state_idx = np.random.choice(len(probs), p=probs)
-        next_pos = possible_next_positions[next_state_idx][0]
+        # then apply action/axis mappings
+        mappings = kwargs.get("mappings")  # abide to very generic UE4Env.step interface
 
-        next_x = next_pos // self.n_col
-        next_y = next_pos % self.n_col
+        # turn around (-1, 0, or 1)
+        if "turn" in mappings:
+            self.orientation += mappings["turn"] * 90
+            self.orientation %= 360  # re-normalize orientation
+
+        # move?
+        next_x = self.x
+        next_y = self.y
+        next_pos = self.pos
+        if "moveForward" in mappings:
+            move = mappings["moveForward"]
+            if move != 0.0:
+                # classic grid world action (0=up, 1=right, 2=down, 3=left)
+                if self.orientation == 0 and move == 1.0 or self.orientation == 180 and move == -1.0:
+                    action = 0
+                elif self.orientation == 90 and move == 1.0 or self.orientation == 270 and move == -1.0:
+                    action = 1
+                elif self.orientation == 0 and move == -1.0 or self.orientation == 180 and move == 1.0:
+                    action = 2
+                else:
+                    action = 3
+
+                possible_next_positions = self.get_possible_next_positions(self.pos, action)
+                # determine the next state based on the transition function
+                probs = [x[1] for x in possible_next_positions]
+                next_state_idx = np.random.choice(len(probs), p=probs)
+                next_pos = possible_next_positions[next_state_idx][0]
+
+                next_x = next_pos // self.n_col
+                next_y = next_pos % self.n_col
+
+        # jump? -> move two fields forward (over walls/fires/holes w/o any damage)
+        if "jump" in mappings and mappings["jump"] is True:
+            # translate into classic grid world action
+            action = int(self.orientation / 90)
+
+            for i in range(2):
+                possible_next_positions = self.get_possible_next_positions(next_pos, action)
+                # determine the next state based on the transition function
+                probs = [x[1] for x in possible_next_positions]
+                next_state_idx = np.random.choice(len(probs), p=probs)
+                next_pos = possible_next_positions[next_state_idx][0]
+
+            next_x = next_pos // self.n_col
+            next_y = next_pos % self.n_col
+
+        # actually move the pawn
+        self.pos = next_pos
 
         # determine reward and done flag
-        next_state_type = self.desc[next_y, next_x]
-        if next_state_type == 'H':
+        field_type = self.desc[self.y, self.x]
+        # hole
+        if field_type == 'H':
             done = True
             reward = 0 if self.reward_func == "sparse" else -100
-        elif next_state_type in ['F', 'S']:
+        # normal field
+        elif field_type in [' ', 'S']:
             done = False
             reward = 0 if self.reward_func == "sparse" else -1
-        elif next_state_type == 'G':
+        # fire!
+        elif field_type == 'F':
+            done = False
+            reward = 0
+            self.health -= 10
+            if self.health <= 0:
+                done = True
+                reward = 0 if self.reward_func == "sparse" else -100
+                self.health = 0
+        # done!
+        elif field_type == 'G':
             done = True
             reward = 1
         else:
             raise NotImplementedError
 
         # prepare the obs_dict
-        self.obs_dict["pos"] = self.pos = next_pos
+        self.obs_dict["camera"] = self.get_cam_pixels()
+        self.obs_dict["health"] = self.health
         self.obs_dict["_reward"] = reward
         self.obs_dict["_done"] = done
 
         return self.obs_dict
 
-    def get_possible_next_positions(self, pos, action):
-        """
-        Given the pos and action, return a list of possible next states and their probabilities. Only next states
-        with nonzero probabilities will be returned
-        For now: Implemented as a deterministic MDP
-
-        :param pos: current position
-        :param action: action
-        :return: a list of pairs (pos', p(pos'|pos,a))
-        """
-        # assert self.observation_space.contains(pos)
-        # assert self.action_space.contains(action)
-
-        x = pos // self.n_col
-        y = pos % self.n_col
-        coords = np.array([x, y])
-
-        increments = np.array([[-1, 0], [0, 1], [1, 0], [0, -1]])
-        next_coords = np.clip(
-            coords + increments[action],
-            [0, 0],
-            [self.n_row - 1, self.n_col - 1]
-        )
-        next_pos = next_coords[0] * self.n_col + next_coords[1]
-        pos_type = self.desc[y, x]
-        next_pos_type = self.desc[next_coords[1], next_coords[0]]
-        if next_pos_type == 'W' or pos_type == 'H' or pos_type == 'G':
-            return [(pos, 1.)]
-        else:
-            return [(next_pos, 1.)]
-
     @cached_property
     def action_space(self):
-        return spaces.Discrete(4, is_distribution=True)
+        return spaces.Dict({"turn": spaces.Continuous(-1.0, 1.0), "moveForward": spaces.Continuous(-1.0, 1.0), "jump": spaces.Bool()})
 
     @cached_property
     def observation_space(self):
-        return spaces.Dict({"pos"    : spaces.Discrete(self.n_row * self.n_col),
-                            "_reward": spaces.Continuous(0, 1) if self.reward_func == "sparse" else spaces.Continuous(-100, 1),
-                            "_done"  : spaces.Bool()})
+        return spaces.Dict({
+            "camera":  spaces.Continuous(0, 255, shape=(self.n_row, self.n_col)),
+            "health":  spaces.Continuous(0, 100),
+            "_reward": spaces.Continuous(0, 1) if self.reward_func == "sparse" else spaces.Continuous(-100, 1),
+            "_done":   spaces.Bool()
+        })
 
-    def render(self):
-        x = self.pos // self.n_col
-        y = self.pos % self.n_col
-
-        # paints itself
-        for row in range(len(self.desc)):
-            for col, val in enumerate(self.desc[row]):
-                if x == col and y == row:
-                    print("X", end="")
-                else:
-                    print(" " if val == "F" else val, end="")
-            print()
-
-        print()
-
+    def get_cam_pixels(self):
+        # 255=nothing
+        # 200=wall or pawn
+        # 50=fire
+        # 0=hole
+        map_ = {
+            " ": 255,
+            "X": 200,  # pawn
+            "W": 200,
+            "F": 50,
+            "H": 0
+        }
+        for row in range(self.n_row):
+            for col in range(self.n_col):
+                field = self.desc[row, col]
+                self.cam_pix[row, col] = map_[field]
+        # overwrite pawn pos
+        self.cam_pix[self.y, self.x] = map_["X"]
+        return self.cam_pix

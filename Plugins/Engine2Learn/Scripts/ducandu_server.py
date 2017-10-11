@@ -24,8 +24,9 @@ def manage_message(message):
         return {'status': 'error', 'message': 'no playing world'}
     print(message)
     # do what is required and then pause
-    playing_world.world_tick(1.0/60.0)
     GameplayStatics.SetGamePaused(playing_world, False)
+    playing_world.world_tick(1.0/60.0)
+    GameplayStatics.SetGamePaused(playing_world, True)
     snapshot = []
     for observer in E2LObserver.GetRegisteredObservers():
         if not observer.has_world():
@@ -41,7 +42,6 @@ def manage_message(message):
             prop['enabled'] = observed_prop.bEnabled
             item['props'].append(prop)
         snapshot.append(item)
-    GameplayStatics.SetGamePaused(playing_world, False)
     return snapshot
 
 # this is called whenever a new client connects

@@ -33,6 +33,8 @@ Vagrant.configure("2") do |config|
   # For Apache Spark
   config.vm.network "forwarded_port", guest: 7077, host: 7077, host_ip: "127.0.0.1"	# Spark Master port
   config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"	# Spark MasterWebUI port
+  # PyCharm debug server
+  config.vm.network "forwarded_port", guest: 20022, host: 20022, host_ip: "127.0.0.1"	# PyCharm debug server
   # Jupyter Notebook
   config.vm.network "forwarded_port", guest: 8888, host: 8099, host_ip: "127.0.0.1"
   #config.vm.network "forwarded_port", guest: 4040, host: 4040, host_ip: "127.0.0.1" # Zeppelin's Apache Spark Driver GUI
@@ -66,13 +68,12 @@ Vagrant.configure("2") do |config|
   # For Apache Zeppelin/Spark, 3 GiB seems to be the minimum.
   config.vm.provider "virtualbox" do |vb|
 	# Set the name in the VirtualBox GUI
-	vb.name = "ml-spark_" + (Time.now.strftime "%Y%m%dT%H%M%S")
+	vb.name = "engine2learn-spark_" + (Time.now.strftime "%Y%m%dT%H%M%S")
     # Customize the amount of memory on the VM:
-    vb.memory = 3072
+    vb.memory = 4096
 	# Customize number of CPUs available inside the VM
-	vb.cpus = 2
+	vb.cpus = 4
   end
-
 
   #
   # View the documentation for the provider you are using for more
@@ -110,6 +111,17 @@ Vagrant.configure("2") do |config|
 
     apt-get --yes upgrade  # comment out if you do not want to always have the latest versions
 
+    # fix user ubuntu's password mess of ubuntu/xenial64 boxes
+    apt-get install -y expect
+    echo '#!/usr/bin/expect
+      set timeout 20
+      spawn sudo passwd ubuntu
+      expect "Enter new UNIX password:" {send "ubuntu\\r"}
+      expect "Retype new UNIX password:" {send "ubuntu\\r"}
+      interact' > change_ubuntu_password
+    chmod +x change_ubuntu_password
+    ./change_ubuntu_password
+
     # git the TensorFlowOnSpark code
     rm -rf TensorFlowOnSpark
     git clone https://github.com/yahoo/TensorFlowOnSpark.git
@@ -132,6 +144,10 @@ Vagrant.configure("2") do |config|
     export SPARK_HOME=$(pwd)/spark-2.2.0-bin-hadoop2.7
     echo "export PATH=${SPARK_HOME}/bin:${PATH}" >> /home/ubuntu/.bashrc
     export PATH=${SPARK_HOME}/bin:${PATH}
+
+    # link all python libs inside /vagrant/
+    echo "export PYTHONPATH=/vagrant/" >> /home/ubuntu/.bashrc
+    export PYTHONPATH=/vagrant/
 
     # Setup of Apache Zeppelin incl. Apache Spark in local mode, as discussed in 3rd meeting
     ## To speed up operations, the zeppelin-0.7.2-bin-all.tgz can be downloaded upfront to the host OS folder which is mapped to the shared folder /vagrant inside the guest machine.
@@ -156,26 +172,39 @@ Vagrant.configure("2") do |config|
     sudo pip install pyspark
     sudo pip install cached_property
     sudo pip install scipy
+    sudo pip install pydevd
+    sudo pip install cython
 
     # download MNIST data for example runs
-    sudo mkdir ${TFoS_HOME}/mnist
-    pushd ${TFoS_HOME}/mnist
-    sudo curl -O "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
-    sudo curl -O "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
-    sudo curl -O "http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz"
-    sudo curl -O "http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz"
-    popd
-    sudo chown -R ubuntu:ubuntu mnist
+    #sudo mkdir ${TFoS_HOME}/mnist
+    #pushd ${TFoS_HOME}/mnist
+    #sudo curl -O "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
+    #sudo curl -O "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
+    #sudo curl -O "http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz"
+    #sudo curl -O "http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz"
+    #popd
+    #sudo chown -R ubuntu:ubuntu mnist
 
-    # Start Spark (master + 2 slaves)
+    # Start Spark (master + n slaves)
+    pushd ${SPARK_HOME}
+    sudo chown -R ubuntu:ubuntu ${SPARK_HOME}
+    cp conf/spark-defaults.conf.template conf/spark-defaults.conf
+    cp conf/spark-env.sh.template conf/spark-env.sh
+    echo "SPARK_WORKER_INSTANCES=3" >> conf/spark-env.sh
+    echo "PYTHONPATH=/vagrant/" >> conf/spark-env.sh
+    echo "spark.master   spark://ubuntu-xenial:7077" >> conf/spark-defaults.sh
+    echo "spark.executor.instances  3" >> conf/spark-defaults.sh
+    popd
+
     echo "export MASTER=spark://$(hostname):7077" >> /home/ubuntu/.bashrc
     export MASTER=spark://$(hostname):7077
-    echo "export SPARK_WORKER_INSTANCES=2" >> /home/ubuntu/.bashrc
-    export SPARK_WORKER_INSTANCES=2
+    echo "export SPARK_WORKER_INSTANCES=3" >> /home/ubuntu/.bashrc
+    export SPARK_WORKER_INSTANCES=3
     echo "export CORES_PER_WORKER=1" >> /home/ubuntu/.bashrc
     export CORES_PER_WORKER=1
     echo "export TOTAL_CORES=$((${CORES_PER_WORKER}*${SPARK_WORKER_INSTANCES}))" >> /home/ubuntu/.bashrc
-    sudo ${SPARK_HOME}/sbin/start-master.sh; sudo ${SPARK_HOME}/sbin/start-slave.sh -c $CORES_PER_WORKER -m 3G ${MASTER}
+    sudo ${SPARK_HOME}/sbin/start-master.sh
+    sudo ${SPARK_HOME}/sbin/start-slave.sh -c $CORES_PER_WORKER -m 3G ${MASTER}
 
     # make pyspark use python3, not 2
 	echo "export PYSPARK_PYTHON=python3" >> /home/ubuntu/.bashrc

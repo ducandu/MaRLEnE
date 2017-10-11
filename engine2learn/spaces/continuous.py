@@ -23,15 +23,18 @@ class Continuous(Space):
     def __init__(self, low, high, shape=None):
         """
         Three kinds of valid input:
-            Continuous(0, 1) # low and high are given as integers and shape is assumed to be (1,)
+            Continuous(0.0, 1.0) # low and high are given as scalars and shape is assumed to be ()
             Continuous(-1.0, 1.0, (3,4)) # low and high are scalars, and shape is provided
-            Continuous(np.array([-1.0,-2.0]), np.array([2.0,4.0])) # low and high are arrays of the same shape
+            Continuous(np.array([-1.0,-2.0]), np.array([2.0,4.0])) # low and high are arrays of the same shape (no shape given!)
         """
+        self.is_scalar = False  # whether we are a single scalar (shape=())
+
         if shape is None:
-            if isinstance(low, int) and isinstance(high, int):
+            if isinstance(low, (int, float)) and isinstance(high, (int, float)):
                 assert low < high
-                self.low = np.array([low])
-                self.high = np.array([high])
+                self.low = float(low)
+                self.high = float(high)
+                self.is_scalar = True
             else:
                 assert low.shape == high.shape
                 self.low = low
@@ -44,18 +47,22 @@ class Continuous(Space):
     def sample(self, seed=None):
         if seed is not None:
             np.random.seed(seed)
-        return np.random.uniform(low=self.low, high=self.high, size=self.low.shape)
+        return np.random.uniform(low=self.low, high=self.high, size=None if self.is_scalar else self.low.shape)
 
     def contains(self, x):
+        if self.is_scalar:
+            return self.low <= x <= self.high
         return x.shape == self.shape and (x >= self.low).all() and (x <= self.high).all()
 
     @property
     def shape(self):
+        if self.is_scalar:
+            return tuple()
         return self.low.shape
 
     @property
     def flat_dim(self):
-        return np.prod(self.low.shape)
+        return int(np.prod(self.shape))
 
     @property
     def bounds(self):
@@ -65,7 +72,10 @@ class Continuous(Space):
         return np.asarray(x).flatten()
 
     def unflatten(self, x):
-        return np.asarray(x).reshape(self.shape)
+        val = np.asarray(x).reshape(self.shape)
+        if self.is_scalar:
+            return float(val)
+        return val
 
     def flatten_batch(self, xs):
         xs = np.asarray(xs)

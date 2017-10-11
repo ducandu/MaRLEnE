@@ -37,6 +37,7 @@ pip-delete-this-directory.txt
 
 # vagrant
 .vagrant/
+_vagrant_box_tmp/
 
 # pycharm
 .idea/

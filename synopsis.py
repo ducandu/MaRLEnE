@@ -1,19 +1,17 @@
 """
-Synopsis file for the python/tensorflow/spark+UE4 project (ue42ml)
+Synopsis file for the python/tensorflow/spark+UE4 project (engine2learn)
 
 Serves the purpose of describing the most important functionalities of the API
 """
 
-import ue42ml as ue4  # <- the lib that we would need to hook up python with UE4
+import engine2learn  # <- the lib that we would need to hook up python with UE4
 
 from cool_ml_lib import MyPolicyNet, learn_something  # <- ducandu will code this
 
 
-# get a subobject of the Env class representing the UE4 game (with the given file name) and abiding to our Env interface
-game_env = ue4.create_env("CoolGame.ue4", **[some kwargs])
-# alternatively: if we are a "demo" process, we can do:
-#game_env = ue4.connect_ue4("servername", 8089)  # hostname, port for the "demo" connection
-
+# get an Env object representing the UE4 game (with the given file name) and abiding to our Env interface
+port = 9999  # the game is listening on localhost:9999 for incoming control connections by engine2learn
+game_env = engine2learn.connect_env("ue4", "localhost", port)
 
 # initialize the game and return the first observation dict
 o = game_env.reset()
@@ -27,7 +25,7 @@ while True:
     a = policy.get_a(o)  # <- ducandu will code this
 
     # take one step (corresponds to one tick) in the game environment
-    o_ = game_env.step(a)
+    o_ = game_env.step(mappings={"MoveForward": 1.0, "Fire": True}, num_ticks=1)
 
     # learn something from the state (observation) transition ...
     # alternatively: if we are a "demo" process, we would skip this step

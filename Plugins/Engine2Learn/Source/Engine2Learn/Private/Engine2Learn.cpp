@@ -5,8 +5,10 @@
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
 #include "ISettingsContainer.h"
+#include "PropertyEditorModule.h"
 
 #include "DucanduSettings.h"
+#include "E2LObserver.h"
 
 #define LOCTEXT_NAMESPACE "FEngine2LearnModule"
 
@@ -30,6 +32,13 @@ void FEngine2LearnModule::StartupModule()
 			GetMutableDefault<UDucanduSettings>()
 		);
 	}
+
+	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
+	{
+
+		//Custom detail views
+		PropertyModule->RegisterCustomPropertyTypeLayout("E2LObservedProperty", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FE2LObservedPropertyDetails::MakeInstance));
+	}
 }
 
 void FEngine2LearnModule::ShutdownModule()
@@ -40,6 +49,11 @@ void FEngine2LearnModule::ShutdownModule()
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "Ducandu", "General");
+	}
+
+	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
+	{
+		PropertyModule->UnregisterCustomPropertyTypeLayout("E2LObservedProperty");
 	}
 }
 

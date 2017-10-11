@@ -66,11 +66,16 @@ public:
 	// Sets default values for this component's properties
 	UE2LObserver();
 
+	~UE2LObserver();
+
 	UPROPERTY(EditAnywhere, Category = General)
 	bool bEnabled;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FE2LObservedProperty> ObservedProperties;
+
+	UFUNCTION()
+	static TArray<UE2LObserver *> GetRegisteredObservers();
 
 	void OnAttachmentChanged() override;
 

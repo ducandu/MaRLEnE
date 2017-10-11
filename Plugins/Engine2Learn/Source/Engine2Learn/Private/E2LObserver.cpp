@@ -4,6 +4,8 @@
 #include "SlateExtras.h"
 #include "SlateBasics.h"
 
+#include "E2LObserversManager.h"
+
 #include "DetailWidgetRow.h"
 
 TSharedRef<IPropertyTypeCustomization> FE2LObservedPropertyDetails::MakeInstance()
@@ -95,12 +97,12 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 		[
 			SNew(SComboBox<TSharedPtr<FE2LPropertyItem>>)
 			.OptionsSource(&ParentProperties)
-			.OnGenerateWidget(this, &FE2LObservedPropertyDetails::OnGenerateWidget)
-			.OnSelectionChanged(this, &FE2LObservedPropertyDetails::OnSelectionChanged)
-			.InitiallySelectedItem(CurrentItem)
-			.Content()[
-				SNew(STextBlock).Text(this, &FE2LObservedPropertyDetails::GetSelectedPropName)
-			]
+		.OnGenerateWidget(this, &FE2LObservedPropertyDetails::OnGenerateWidget)
+		.OnSelectionChanged(this, &FE2LObservedPropertyDetails::OnSelectionChanged)
+		.InitiallySelectedItem(CurrentItem)
+		.Content()[
+			SNew(STextBlock).Text(this, &FE2LObservedPropertyDetails::GetSelectedPropName)
+		]
 		]
 	.ValueContent()
 		[
@@ -118,6 +120,9 @@ void FE2LObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHa
 // Sets default values for this component's properties
 UE2LObserver::UE2LObserver()
 {
+
+	E2LObserversManager::RegisterObserver(this);
+
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
@@ -129,6 +134,17 @@ UE2LObserver::UE2LObserver()
 	BillboardComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
 	bEnabled = true;
+}
+
+UE2LObserver::~UE2LObserver()
+{
+	// unregister from the manager
+	E2LObserversManager::UnregisterObserver(this);
+}
+
+TArray<UE2LObserver *> UE2LObserver::GetRegisteredObservers()
+{
+	return E2LObserversManager::GetObservers();
 }
 
 

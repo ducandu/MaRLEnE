@@ -1,7 +1,7 @@
 import unreal_engine as ue
 import asyncio
 import ue_asyncio
-from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver
+from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver, CameraComponent, SceneCaptureComponent2D
 import msgpack
 
 # cleanup previous tasks
@@ -33,13 +33,35 @@ def manage_message(message):
             continue
         if observer.get_world() != playing_world:
             continue
+        parent = observer.GetAttachParent()
+        if not parent:
+           continue
         item = {}
         item['observer'] = observer.get_name()
+        if observer.bScreenCapture:
+            if parent.is_a(SceneCaptureComponent2D):
+                texture = parent.TextureTarget
+                if not texture:
+                    # todo pass texture size and format
+                    texture = ue.create_transient_texture_render_target2d(1024, 1024)
+                    parent.TextureTarget = texture
+                # trigger scene capture
+                parent.CaptureScene()
+                item['screen'] = bytes(texture.render_target_get_data())
+            # TODO if it is a CameraComponent, dynamically generate a new SceneCaptureComponent2D
+            # bCaptureEveryFrame = false
+            # bCaptureOnMovement = false
+            # ... 
         item['props'] = []
         for observed_prop in  observer.ObservedProperties:
+            if not observed_prop.bEnabled:
+                continue
+            if not parent.has_property(observed_prop.PropName):
+                continue
             prop = {}
             prop['name'] = observed_prop.PropName
-            prop['enabled'] = observed_prop.bEnabled
+            # for now, store it as a string
+            prop['value'] = str(parent.get_property(observed_prop.PropName))
             item['props'].append(prop)
         snapshot.append(item)
     return snapshot
@@ -58,7 +80,6 @@ async def new_client_connected(reader, writer):
         unpacker.feed(data)
         for message in unpacker:
             response = manage_message(message)
-            print(response)
             writer.write(msgpack.packb(response))
 
     ue.log('client {0} disconnected'.format(name))

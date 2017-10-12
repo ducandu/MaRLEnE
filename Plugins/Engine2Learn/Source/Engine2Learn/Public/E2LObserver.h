@@ -71,6 +71,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = General)
 	bool bEnabled;
 
+	UPROPERTY(EditAnywhere)
+	bool bScreenCapture;
+
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FE2LObservedProperty> ObservedProperties;
 

@@ -17,6 +17,14 @@ def get_playing_world():
             break
     return playing_world
 
+
+
+def get_child_component(component, component_class):
+    for child in component.AttachChildren:
+        if child.is_a(component_class):
+            return child
+    return None
+
 def manage_message(message):
     snapshot = []
     playing_world = get_playing_world()
@@ -48,10 +56,22 @@ def manage_message(message):
                 # trigger scene capture
                 parent.CaptureScene()
                 item['screen'] = bytes(texture.render_target_get_data())
-            # TODO if it is a CameraComponent, dynamically generate a new SceneCaptureComponent2D
-            # bCaptureEveryFrame = false
-            # bCaptureOnMovement = false
-            # ... 
+            elif parent.is_a(CameraComponent):
+                scene_capture = get_child_component(parent, SceneCaptureComponent2D)
+                if scene_capture:
+                    texture = scene_capture.TextureTarget
+                    scene_capture.CaptureScene()
+                    item['screen'] = bytes(texture.render_target_get_data())
+                else:
+                    # if it is a CameraComponent, dynamically generate a new SceneCaptureComponent2D
+                    scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, 'Engine2LearnScreenCapture', parent)
+                    scene_capture.bCaptureEveryFrame = False
+                    scene_capture.bCaptureOnMovement = False
+                    scene_capture.Texture = ue.create_transient_texture_render_target2d(1024, 1024)
+                    # TODO: setup camera transform and options
+                    scene_capture.CaptureScene()
+                    print(scene_capture)
+                    item['screen'] = bytes(texture.render_target_get_data())
         item['props'] = []
         for observed_prop in  observer.ObservedProperties:
             if not observed_prop.bEnabled:

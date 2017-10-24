@@ -44,6 +44,16 @@ ECheckBoxState FE2LObservedPropertyDetails::GetSelectedPropEnabled() const
 	return ObservedProperty->bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+TOptional<float> FE2LObservedPropertyDetails::GetSelectedPropRangeMin() const
+{
+	return ObservedProperty->RangeMin;
+}
+
+TOptional<float> FE2LObservedPropertyDetails::GetSelectedPropRangeMax() const
+{
+	return ObservedProperty->RangeMax;
+}
+
 void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
@@ -106,8 +116,31 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 		]
 	.ValueContent()
 		[
-			SNew(SCheckBox)
-			.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
+			SNew(SHorizontalBox)
+			
+				+ SHorizontalBox::Slot().AutoWidth()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
+				]
+				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+				[
+					SNew(STextBlock).Text(FText::FromString("Min"))
+				]
+				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMin)
+				]
+				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+				[
+					SNew(STextBlock).Text(FText::FromString("Max"))
+				]
+				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMax)
+				]
 		];
 }
 

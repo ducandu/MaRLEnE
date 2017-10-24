@@ -25,6 +25,12 @@ struct FE2LObservedProperty
 	{
 		bEnabled = true;
 	}
+
+	UPROPERTY(EditAnyWhere)
+	float RangeMin;
+
+	UPROPERTY(EditAnyWhere)
+	float RangeMax;
 };
 
 struct FE2LPropertyItem
@@ -48,6 +54,8 @@ public:
 
 	FText GetSelectedPropName() const;
 	ECheckBoxState GetSelectedPropEnabled() const;
+	TOptional<float> GetSelectedPropRangeMin() const;
+	TOptional<float> GetSelectedPropRangeMax() const;
 
 protected:
 	TArray<TSharedPtr<FE2LPropertyItem>> ParentProperties;

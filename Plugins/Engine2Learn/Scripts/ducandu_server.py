@@ -2,6 +2,8 @@ import unreal_engine as ue
 import asyncio
 import ue_asyncio
 from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver, CameraComponent, SceneCaptureComponent2D
+from unreal_engine.structs import Key
+from unreal_engine.enums import EInputEvent
 import msgpack
 
 # cleanup previous tasks
@@ -25,15 +27,28 @@ def get_child_component(component, component_class):
             return child
     return None
 
-def manage_message(message):
+def reset(message):
+    playing_world = get_playing_world()
+    if not playing_world:
+        return {'status': 'error', 'message': 'no playing world'}
+    playing_world.restart_level()
+    return {'status': 'ok'}
+
+def step(message):
     snapshot = []
     playing_world = get_playing_world()
     if not playing_world:
         return {'status': 'error', 'message': 'no playing world'}
-    print(message)
+    delta_time = message.get('delta_time', 1.0/60.0)
     # do what is required and then pause
     GameplayStatics.SetGamePaused(playing_world, False)
-    playing_world.world_tick(1.0/60.0)
+    if b'axis' in message:
+        for axis in message[b'axis']:
+            playing_world.get_player_controller().input_axis(Key(KeyName=axis[b'name']), axis[b'delta'], delta_time)
+    if b'keys' in message:
+        for key in message[b'keys']:
+            playing_world.get_player_controller().input_key(Key(KeyName=key[b'name']), EInputEvent.IE_Pressed if key[b'pressed'] else EInputEvent.IE_Released)
+    playing_world.world_tick(delta_time)
     GameplayStatics.SetGamePaused(playing_world, True)
     snapshot = []
     for observer in E2LObserver.GetRegisteredObservers():
@@ -67,7 +82,7 @@ def manage_message(message):
                     scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, 'Engine2LearnScreenCapture', parent)
                     scene_capture.bCaptureEveryFrame = False
                     scene_capture.bCaptureOnMovement = False
-                    scene_capture.Texture = ue.create_transient_texture_render_target2d(1024, 1024)
+                    scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(1024, 1024)
                     # TODO: setup camera transform and options
                     scene_capture.CaptureScene()
                     print(scene_capture)
@@ -82,10 +97,19 @@ def manage_message(message):
             prop['name'] = observed_prop.PropName
             # for now, store it as a string
             prop['value'] = str(parent.get_property(observed_prop.PropName))
+            prop['min'] = observed_prop.RangeMin
+            prop['max'] = observed_prop.RangeMax
             item['props'].append(prop)
         snapshot.append(item)
     return snapshot
 
+def manage_message(message):
+    print(message)
+    if message[b'cmd'] == b'step':
+        return step(message)
+    if message[b'cmd'] == b'reset':
+        return reset(message)
+    return {'status': 'error', 'message': 'unknown command'}
 # this is called whenever a new client connects
 async def new_client_connected(reader, writer):
     name = writer.get_extra_info('peername')

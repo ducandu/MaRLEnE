@@ -57,6 +57,10 @@ public:
 	TOptional<float> GetSelectedPropRangeMin() const;
 	TOptional<float> GetSelectedPropRangeMax() const;
 
+	void PropRangeMinChanged(float Value);
+	void PropRangeMaxChanged(float Value);
+	void PropCheckChanged(ECheckBoxState CheckBoxState);
+
 protected:
 	TArray<TSharedPtr<FE2LPropertyItem>> ParentProperties;
 

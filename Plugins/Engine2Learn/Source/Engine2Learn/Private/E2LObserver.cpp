@@ -34,6 +34,21 @@ void FE2LObservedPropertyDetails::OnSelectionChanged(TSharedPtr<FE2LPropertyItem
 	SProp->MarkPackageDirty();
 }
 
+void FE2LObservedPropertyDetails::PropRangeMinChanged(float Value)
+{
+	ObservedProperty->RangeMin = Value;
+}
+
+void FE2LObservedPropertyDetails::PropRangeMaxChanged(float Value)
+{
+	ObservedProperty->RangeMax = Value;
+}
+
+void FE2LObservedPropertyDetails::PropCheckChanged(ECheckBoxState CheckBoxState)
+{
+	ObservedProperty->bEnabled = CheckBoxState == ECheckBoxState::Checked;
+}
+
 FText FE2LObservedPropertyDetails::GetSelectedPropName() const
 {
 	return FText::FromString(ObservedProperty->PropName);
@@ -117,30 +132,33 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	.ValueContent()
 		[
 			SNew(SHorizontalBox)
-			
-				+ SHorizontalBox::Slot().AutoWidth()
-				[
-					SNew(SCheckBox)
-					.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
-				]
-				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-				[
-					SNew(STextBlock).Text(FText::FromString("Min"))
-				]
-				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMin)
-				]
-				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-				[
-					SNew(STextBlock).Text(FText::FromString("Max"))
-				]
-				+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMax)
-				]
+
+			+ SHorizontalBox::Slot().AutoWidth()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
+		.OnCheckStateChanged(this, &FE2LObservedPropertyDetails::PropCheckChanged)
+		]
+	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+		[
+			SNew(STextBlock).Text(FText::FromString("Min"))
+		]
+	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+		[
+			SNew(SNumericEntryBox<float>)
+			.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMin)
+		.OnValueChanged(this, &FE2LObservedPropertyDetails::PropRangeMinChanged)
+		]
+	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+		[
+			SNew(STextBlock).Text(FText::FromString("Max"))
+		]
+	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
+		[
+			SNew(SNumericEntryBox<float>)
+			.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMax)
+		.OnValueChanged(this, &FE2LObservedPropertyDetails::PropRangeMaxChanged)
+		]
 		];
 }
 

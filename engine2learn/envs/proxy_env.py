@@ -20,7 +20,11 @@ class ProxyEnv(Env):
     e.g. normalization.
     """
     def __init__(self, wrapped_env):
+        super().__init__()
         self._wrapped_env = wrapped_env
+        # point our obs_dict to the wrapped one
+        # - can be re-pointed by child classes
+        self.obs_dict = self._wrapped_env.obs_dict
 
     @property
     def wrapped_env(self):
@@ -31,9 +35,6 @@ class ProxyEnv(Env):
 
     def reset(self, **kwargs):
         return self._wrapped_env.reset(**kwargs)
-
-    def current_observation(self):
-        return self._wrapped_env.current_observation()
 
     @property
     def action_space(self):

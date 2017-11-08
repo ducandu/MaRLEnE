@@ -136,7 +136,7 @@ class Bool(Discrete):
 
     @property
     def shape(self):
-        return 1,
+        return tuple()
 
     @property
     def flat_dim(self):

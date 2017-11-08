@@ -14,6 +14,13 @@ Vagrant.configure("2") do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/xenial64"
 
+  # X11 forwarding
+  config.ssh.forward_x11 = true
+  config.ssh.forward_agent = true
+  # IMPORTANT NOTE on making XWindow work with Vagrant: Remember to trigger reverse port forwarding (from Vagrant to host PC) via:
+  # `vagrant ssh -- -R 6000:localhost:6000` (for display=0:0 -> port that XWindow listens on is 6000)
+  # also, the DISPLAY env variable needs to be set
+
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
@@ -33,8 +40,8 @@ Vagrant.configure("2") do |config|
   # For Apache Spark
   config.vm.network "forwarded_port", guest: 7077, host: 7077, host_ip: "127.0.0.1"	# Spark Master port
   config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"	# Spark MasterWebUI port
-  # PyCharm debug server
-  config.vm.network "forwarded_port", guest: 20022, host: 20022, host_ip: "127.0.0.1"	# PyCharm debug server
+  #OLD: PyCharm debug server
+  #config.vm.network "forwarded_port", guest: 20022, host: 20022, host_ip: "127.0.0.1"	# PyCharm debug server
   # Jupyter Notebook
   config.vm.network "forwarded_port", guest: 8888, host: 8099, host_ip: "127.0.0.1"
   #config.vm.network "forwarded_port", guest: 4040, host: 4040, host_ip: "127.0.0.1" # Zeppelin's Apache Spark Driver GUI
@@ -69,10 +76,10 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
 	# Set the name in the VirtualBox GUI
 	vb.name = "engine2learn-spark_" + (Time.now.strftime "%Y%m%dT%H%M%S")
-    # Customize the amount of memory on the VM:
-    vb.memory = 4096
+    # Customize the amount of memory on the VM (in bytes; 4096=4G):
+    vb.memory = 8192
 	# Customize number of CPUs available inside the VM
-	vb.cpus = 4
+	vb.cpus = 8
   end
 
   #
@@ -100,16 +107,17 @@ Vagrant.configure("2") do |config|
 
     # General setup of ML box as discussed in 2nd meeting
     apt-get update
-    # apt-get install -y apache2 # was optional in 2nd meeting and we do not need it for Apache Spark, so commented out to save time/space
-    #sudo apt-get install -y python 3.6.2
+    apt-get --yes upgrade  # comment out if you do not want to always have the latest versions
+
     apt-get install -y python3-pip
+    #apt-get install -y default-jdk
+    apt-get install -y python3-tk
 
     # python2? what's that?
+    sudo rm -rf /usr/bin/python
     sudo ln -s -f /usr/bin/python3 /usr/bin/python
     sudo ln -s -f /usr/bin/pip3 /usr/bin/pip
     pip install --upgrade pip
-
-    apt-get --yes upgrade  # comment out if you do not want to always have the latest versions
 
     # fix user ubuntu's password mess of ubuntu/xenial64 boxes
     apt-get install -y expect
@@ -122,12 +130,17 @@ Vagrant.configure("2") do |config|
     chmod +x change_ubuntu_password
     ./change_ubuntu_password
 
+    # XWindow stuff (set our display running on host (e.g. Win10 PC))
+    # 0=port 6000, 1=port 6001, etc..
+    echo "export DISPLAY=0:0" >> /home/ubuntu/.bashrc
+
     # git the TensorFlowOnSpark code
     rm -rf TensorFlowOnSpark
     git clone https://github.com/yahoo/TensorFlowOnSpark.git
-    cd TensorFlowOnSpark
+    pushd TensorFlowOnSpark
     echo "export TFoS_HOME="$(pwd) >> /home/ubuntu/.bashrc
     export TFoS_HOME=$(pwd)
+    popd
 
     # Get Java
     sudo apt-get --yes install openjdk-8-jre-headless
@@ -136,6 +149,7 @@ Vagrant.configure("2") do |config|
 
     # Get Spark and Install
     # replace with a current version of spark
+    cd ~ubuntu
     wget --no-verbose http://archive.apache.org/dist/spark/spark-2.2.0/spark-2.2.0-bin-hadoop2.7.tgz
     gunzip spark-2.2.0-bin-hadoop2.7.tgz
     tar -xvf spark-2.2.0-bin-hadoop2.7.tar
@@ -144,6 +158,13 @@ Vagrant.configure("2") do |config|
     export SPARK_HOME=$(pwd)/spark-2.2.0-bin-hadoop2.7
     echo "export PATH=${SPARK_HOME}/bin:${PATH}" >> /home/ubuntu/.bashrc
     export PATH=${SPARK_HOME}/bin:${PATH}
+
+    # get Hadoop and install
+    #cd
+    #wget --no-verbose http://apache.mirror.iphh.net/hadoop/common/hadoop-2.7.4/hadoop-2.7.4.tar.gz
+    #gunzip hadoop-2.7.4.tar.gz
+    #tar -xvf hadoop-2.7.4.tar
+    #rm hadoop-2.7.4.tar
 
     # link all python libs inside /vagrant/
     echo "export PYTHONPATH=/vagrant/" >> /home/ubuntu/.bashrc
@@ -165,15 +186,37 @@ Vagrant.configure("2") do |config|
     #sudo --user=ubuntu ln --symbolic --force /home/ubuntu/spark-2.2.0-bin-hadoop2.7 /home/ubuntu/spark
 
     # install important python libs
+    sudo apt-get install -y python-numpy python-dev cmake zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libboost-all-dev libsdl2-dev swig
     sudo pip install tensorflow
     sudo pip install tensorflowonspark
     sudo pip install dm-sonnet
     sudo pip install jupyter notebook
     sudo pip install pyspark
     sudo pip install cached_property
+    sudo pip install numpy
     sudo pip install scipy
     sudo pip install pydevd
     sudo pip install cython
+    sudo pip install matplotlib
+    sudo pip install pygame
+    sudo pip install msgpack-python
+
+    # get openAI gym (including Atari Envs)
+    cd
+    git clone https://github.com/openai/gym.git
+    cd gym/
+    pip install --user -e .
+    pip install --user -e '.[atari]'
+    cd
+
+    ## get the Arcade Learning Env
+    #cd
+    #git clone https://github.com/mgbellemare/Arcade-Learning-Environment.git
+    ## install its dependencies
+    #sudo apt-get install -y libsdl1.2-dev libsdl-gfx1.2-dev libsdl-image1.2-dev cmake
+    #mkdir build && cd build
+    #cmake -DUSE_SDL=ON -DUSE_RLGLUE=OFF -DBUILD_EXAMPLES=ON ..
+    #make -j 4
 
     # download MNIST data for example runs
     #sudo mkdir ${TFoS_HOME}/mnist
@@ -203,8 +246,8 @@ Vagrant.configure("2") do |config|
     echo "export CORES_PER_WORKER=1" >> /home/ubuntu/.bashrc
     export CORES_PER_WORKER=1
     echo "export TOTAL_CORES=$((${CORES_PER_WORKER}*${SPARK_WORKER_INSTANCES}))" >> /home/ubuntu/.bashrc
-    sudo ${SPARK_HOME}/sbin/start-master.sh
-    sudo ${SPARK_HOME}/sbin/start-slave.sh -c $CORES_PER_WORKER -m 3G ${MASTER}
+    ${SPARK_HOME}/sbin/start-master.sh
+    ${SPARK_HOME}/sbin/start-slave.sh -c $CORES_PER_WORKER -m 3G ${MASTER}
 
     # make pyspark use python3, not 2
 	echo "export PYSPARK_PYTHON=python3" >> /home/ubuntu/.bashrc

@@ -41,32 +41,31 @@ class Dict(Space, dict):
 
     @property
     def shape(self):
-        # TODO: there may be a problem with this if we have a Dict space inside this Dict
         return tuple([self[key].flat_dim for key in sorted(self.keys())])
 
-    def flatten(self, x):
-        return np.concatenate([self[key].flatten(x[key]) for key in sorted(self.keys())])
+    def flatten(self, x, keys=None):
+        return np.concatenate([self[key].flatten(x[key]) for key in sorted(self.keys() if keys is None else keys)])
 
-    def flatten_batch(self, xs):
+    def flatten_batch(self, xs, keys=None):
         # xs = [ {1st sample}, {2nd sample}, {3rd sample}, ...]
-        xs_regrouped = {key: [d[key] for d in xs] for key in sorted(xs[0].keys())}
+        xs_regrouped = {key: [d[key] for d in xs] for key in sorted(xs[0].keys() if keys is None else keys)}
         # xs_regrouped = { key0: [1st[key0], 2nd[key0], 3rd[key0] ...], key1: [], etc...]
-        flat_regrouped = [self[key].flatten_batch(xs_regrouped[key]) for key in sorted(self.keys())]
+        flat_regrouped = [self[key].flatten_batch(xs_regrouped[key]) for key in sorted(self.keys() if keys is None else keys)]
         return np.concatenate(flat_regrouped, axis=-1)
 
-    def unflatten(self, x):
-        dims = [self[key].flat_dim for key in sorted(self.keys())]
+    def unflatten(self, x, keys=None):
+        dims = [self[key].flat_dim for key in sorted(self.keys() if keys is None else keys)]
         flat_xs = np.split(x, np.cumsum(dims)[:-1])
-        return {key: self[key].unflatten(flat_xs[i]) for i, key in enumerate(sorted(self.keys()))}
+        return {key: self[key].unflatten(flat_xs[i]) for i, key in enumerate(sorted(self.keys() if keys is None else keys))}
 
-    def unflatten_batch(self, xs):
+    def unflatten_batch(self, xs, keys=None):
         # dims = [self[key].flat_dim for key in sorted(self.keys())]
         # flat_xs = np.split(xs, np.cumsum(dims)[:-1], axis=-1)
         # unflattened_xs = [c.unflatten_n(xi) for c, xi in zip(self.components, flat_xs)]
         # #unflattened_xs_grouped = list(zip(*unflattened_xs))
         # return unflattened_xs_grouped
         # TODO: this may not be the fastest way to do this, but a simple one
-        return np.array([self.unflatten(sample) for sample in xs])
+        return np.array([self.unflatten(sample, keys) for sample in xs])
 
     def __eq__(self, other):
         if not isinstance(other, Dict):

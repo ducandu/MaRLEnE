@@ -14,6 +14,8 @@ from cached_property import cached_property
 import numpy as np
 from .base import Env
 import engine2learn.spaces as spaces
+import math
+import random
 
 
 class GridWorld(Env):
@@ -52,9 +54,38 @@ class GridWorld(Env):
             " H  H H ",
             "   H   G"
         ],
+        "8x16": [
+            "S      H        ",
+            "   H       HH   ",
+            "    FF   WWWWWWW",
+            "  H      W      ",
+            "    FF   W  H   ",
+            "         W      ",
+            "    FF   W      ",
+            "  H          H G"
+        ],
+        "16x16": [
+            "S      H        ",
+            "           HH   ",
+            "    FF   W     W",
+            "         W      ",
+            "WWW FF      H   ",
+            "         W      ",
+            " FFFF    W      ",
+            "  H          H  ",
+            "       H        ",
+            "   H       HH   ",
+            "WWWW     WWWWWWW",
+            "  H      W    W ",
+            "    FF   W  H W ",
+            "WWWW    WW    W ",
+            "    FF   W      ",
+            "  H          H G"
+        ]
     }
 
-    def __init__(self, desc="4x4", save=False, reward_func="sparse"):
+    def __init__(self, desc="4x4", save=False, reward_func="sparse", obs_repr="discr_pos"):
+        super().__init__()
         if isinstance(desc, str):
             desc = self.MAPS[desc]
         desc = np.array(list(map(list, desc)))
@@ -63,16 +94,22 @@ class GridWorld(Env):
         self.desc = desc  # desc needs to be indexed as y/x pairs (first row, then column), just as any matrix
         self.n_row, self.n_col = desc.shape
         (start_x,), (start_y,) = np.nonzero(desc == "S")
+        self.cam_pix = None
 
-        self.pos0 = start_x * self.n_col + start_y
+        self.pos0 = self.get_pos(start_x, start_y)
         self.pos = self.pos0
 
         # a rich reward function gives -1 normally, 1 on end and -100 for falling into a hole
-        assert reward_func == "sparse" or reward_func == "rich"
+        assert reward_func == "sparse" or reward_func == "rich" or reward_func == "rich_potential"
         self.reward_func = reward_func
 
-        self.obs_dict = {}
-        self.obs_dict = self.reset()
+        self.obs_repr = obs_repr  # what goes into the obs_dict?
+
+        # store the goal position for proximity calculations
+        (self.goal_x,), (self.goal_y,) = np.nonzero(desc == "G")
+
+        # populate our obs_dict
+        self.refresh_obs_dict(0, False)
 
     @property
     def x(self):
@@ -82,14 +119,42 @@ class GridWorld(Env):
     def y(self):
         return self.pos % self.n_col
 
-    def reset(self):
-        self.pos = self.pos0
-        self.obs_dict["pos"] = self.pos
-        self.obs_dict["_reward"] = 0
-        self.obs_dict["_done"] = False
-        return self.obs_dict
+    def get_pos(self, x, y):
+        """
+        self.pos is counted walking down the rows of the grid first (starting in upper left corner), then along the col-axis
 
-    def current_observation(self):
+        :param int x: The x coord.
+        :param y: The y coord.
+        :return: The discrete pos value corresponding to the given x and y.
+        :rtype: int
+        """
+        return x * self.n_col + y
+
+    def refresh_obs_dict(self, reward, done):
+        self.obs_dict["_reward"] = reward
+        self.obs_dict["_done"] = done
+
+        if self.obs_repr == "discr_pos":
+            self.obs_dict["pos"] = self.pos
+        elif self.obs_repr == "xy_pos":
+            self.obs_dict["x"] = self.x
+            self.obs_dict["y"] = self.y
+        elif self.obs_repr == "2d_cam":
+            self.update_cam_pixels()
+            self.obs_dict["cam"] = self.cam_pix
+
+    def reset(self, randomize=False):
+        if not randomize:
+            self.pos = self.pos0
+        else:
+            # move to a random first position (empty space, start or fire are all fine)
+            while True:
+                self.pos = random.choice(range(self.n_row * self.n_col))
+                next_state_type = self.desc[self.y, self.x]
+                if next_state_type in [" ", "S", "F"]:
+                    break
+
+        self.refresh_obs_dict(0, False)
         return self.obs_dict
 
     def step(self, **kwargs):
@@ -99,6 +164,7 @@ class GridWorld(Env):
         1: right
         2: down
         3: left
+
         :param any kwargs: Information on how to act next.
         action (int): An integer 0-3 that describes the next action.
         set (List[int]): A list of integers to set the current position to before acting.
@@ -126,22 +192,24 @@ class GridWorld(Env):
 
         # determine reward and done flag
         next_state_type = self.desc[next_y, next_x]
-        if next_state_type == 'H':
+        if next_state_type == "H":
             done = True
-            reward = 0 if self.reward_func == "sparse" else -100
-        elif next_state_type in [' ', 'S']:
+            reward = -1 if self.reward_func == "sparse" else -100
+        elif next_state_type == "F":
+            done = False
+            reward = -1 if self.reward_func == "sparse" else -10
+        elif next_state_type in [" ", "S"]:
             done = False
             reward = 0 if self.reward_func == "sparse" else -1
-        elif next_state_type == 'G':
+        elif next_state_type == "G":
             done = True
-            reward = 1
+            reward = 50
         else:
             raise NotImplementedError
 
         # prepare the obs_dict
-        self.obs_dict["pos"] = self.pos = next_pos
-        self.obs_dict["_reward"] = reward
-        self.obs_dict["_done"] = done
+        self.pos = next_pos
+        self.refresh_obs_dict(reward, done)
 
         return self.obs_dict
 
@@ -183,13 +251,48 @@ class GridWorld(Env):
 
     @cached_property
     def observation_space(self):
-        return spaces.Dict({"pos": spaces.Discrete(self.n_row * self.n_col),
-                            "_reward": spaces.Continuous(0, 1) if self.reward_func == "sparse" else spaces.Continuous(-100, 1),
-                            "_done": spaces.Bool()})
+        # our basic obs_dict (reward and done flag)
+        d = {
+            "_reward": spaces.Continuous(-1, 1) if self.reward_func == "sparse" else spaces.Continuous(-100, 1),
+            "_done": spaces.Bool()
+        }
+        # add certain keys depending on the desired representation
+        if self.obs_repr == "discr_pos":
+            d["pos"] = spaces.Discrete(self.n_row * self.n_col)
+        elif self.obs_repr == "xy_pos":
+            d["x"] = spaces.Continuous(0, self.n_col)
+            d["y"] = spaces.Continuous(0, self.n_row)
+        else:
+            d["cam"] = spaces.Continuous(0, 255, shape=(self.n_row, self.n_col, 3))
+
+        return spaces.Dict(d)
 
     @property
     def horizon(self):
         return None
+
+    def update_cam_pixels(self):
+        # init cam?
+        if self.cam_pix is None:
+            self.cam_pix = np.zeros(shape=(self.n_row, self.n_col, 3), dtype=float)
+        self.cam_pix[:, :, :] = 0  # reset everything
+
+        # first channel -> walls (1) and goal (-1)
+        # second channel -> dangers (fire 0.5, holes 1)
+        # third channel -> pawn position (1)
+        for row in range(self.n_row):
+            for col in range(self.n_col):
+                field = self.desc[row, col]
+                if field == "F":
+                    self.cam_pix[row, col, 0] = 0.5
+                elif field == "H":
+                    self.cam_pix[row, col, 0] = 1
+                elif field == "W":
+                    self.cam_pix[row, col, 1] = 1
+                elif field == "G":
+                    self.cam_pix[row, col, 1] = -1  # will this work?
+        # overwrite pawn pos
+        self.cam_pix[self.y, self.x, 2] = 1
 
     def render(self):
         # paints itself
@@ -203,3 +306,5 @@ class GridWorld(Env):
 
         print()
 
+    def get_dist_to_goal(self):
+        return math.sqrt((self.x - self.goal_x) ** 2 + (self.y - self.goal_y) ** 2)

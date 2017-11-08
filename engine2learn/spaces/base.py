@@ -37,7 +37,7 @@ class Space(object):
         """
         raise NotImplementedError
 
-    def flatten(self, x):
+    def flatten(self, x, **kwargs):
         """
         Flattens the given sample from rank n into rank 1 (from nD tensor to 1D vector).
 
@@ -47,7 +47,7 @@ class Space(object):
         """
         raise NotImplementedError
 
-    def unflatten(self, x):
+    def unflatten(self, x, **kwargs):
         """
         Reshapes a previously flattened sample back into the proper space shape (from 1D vector to nD tensor).
 
@@ -57,24 +57,24 @@ class Space(object):
         """
         raise NotImplementedError
 
-    def flatten_batch(self, xs):
+    def flatten_batch(self, xs, **kwargs):
         """
         Flattens the given sample after the first axis (the "batch" axis), so from rank n into rank 2 (from nD tensor to 2D vector, where the
         first axis is still the batch axis).
 
-        :param x: the sample to be batch-flattened
-        :return: the flattened 2D tensor
+        :param list xs: The list of samples to be batch-flattened.
+        :return: The flattened 2D tensor.
         :rtype: any
         """
         raise NotImplementedError
 
-    def unflatten_batch(self, xs):
+    def unflatten_batch(self, xs, **kwargs):
         """
         Reshapes a previously flattened_batch sample back into the proper space shape, so from rank 2 into rank n (from 2D tensor to nD tensor, where
         the first axis is always the "batch" axis).
 
-        :param x: the sample to be unflattened
-        :return: the reshaped tensor
+        :param list xs: The list of samples to be unflattened.
+        :return: The reshaped tensor.
         :rtype: any
         """
         raise NotImplementedError

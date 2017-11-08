@@ -55,9 +55,9 @@ class Model(object):
 
     def add_feeds(self, *feeds):
         """
-        Adds placeholders (feeds) to the Module.
+        Adds placeholders (input feeds) to the Module.
 
-        :param list feeds: The list of feeds to create tf.placeholder objects from.
+        :param Union[list|tuple] feeds: The list of feeds to create tf.placeholder objects from.
         Feeds are specified via a list of tuples, where each tuple has the following format:
         0=tf dtype; 1=shape (list or tuple); 2=name (without the tf ':0'-part)
         :return: A tuple containing all placeholder objects that were created in the same order as the *feeds list.
@@ -107,11 +107,19 @@ class Model(object):
         """
         Returns a tf.Tensor object for the given name.
 
-        :param str name: The name of the Tensor, which we would like to get returned.
-        :return: The Tensor that is stored under the given name in our dict.
-        :rtype: tf.Tensor
+        :param Union[str,List[str]] name: The name(s) of the Tensor(s), which we would like to get returned.
+        :return: The Tensor(s) that is stored under the given name in our dict.
+        :rtype: Union[tf.Tensor,List[tf.Tensor]]
         """
-        return self._outputs.get(name, None)
+        if isinstance(name, (tuple, list)):
+            ret = []
+            for n in name:
+                ret.append(self.get_output(n))
+        else:
+            ret = self._outputs.get(name)
+            if ret is None:
+                raise KeyError("{} is not a valid output for model {}!".format(name, self.name))
+        return ret
 
     def add_fork(self, from_, to_left, to_right):
         """

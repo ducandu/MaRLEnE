@@ -34,6 +34,10 @@ class EnvSpec(object):
 
 
 class Env(object):
+    def __init__(self):
+        # try to keep only one copy ever of this dict and do all conversions/updates in place
+        self.obs_dict = {}
+
     def step(self, **kwargs):
         """
         Run one time step of the environment's dynamics. When the end of an episode is reached, reset() should be called to reset the environment's
@@ -55,12 +59,13 @@ class Env(object):
         """
         raise NotImplementedError
 
+    @property
     def current_observation(self):
         """
         :return: Returns the current observation_dict of the Environment without actually changing anything.
         :rtype: dict
         """
-        raise NotImplementedError
+        return self.obs_dict
 
     @cached_property
     def action_space(self):

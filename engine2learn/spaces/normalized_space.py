@@ -19,31 +19,44 @@ import numpy as np
 
 
 class NormalizedSpace(Space):
-    def __init__(self, space, alpha=0.001):
+    def __init__(self, space, alpha=0.001, keys_to_globally_normalize=None, globally_normalize=False):
+        """
+        A normalized space object wraps around a "regular" space and normalizes it
+        either per single value or per subspace-group (e.g. a camera image).
+
+        :param Space space: The wrapped space to normalize.
+        :param float alpha: The weight with which to weigh new incoming values for the running average
+        :param Union[List[str],None] keys_to_globally_normalize: A list of keys (str) of a dict for which we do "global" normalization (not per-value)
+        This is useful for images (3D continuous), which should be normalized not(!) per pixel, but per entire image.
+        :param bool globally_normalize: Whether to normalize this sub-space globally (True) or per value (False)
+        """
         self.space = space
 
         # normalized = (1-alpha)*normalized(<-old estimate) + alpha * (new observation:(mean or variance))
         self.alpha = alpha
+        #self.keys_to_globally_normalize = keys_to_globally_normalize  # for Dict wrapped spaces only
+        self.globally_normalize = globally_normalize  # for Continuous wrapped spaces only
         self.subspaces = None
+        keys_to_globally_normalize = keys_to_globally_normalize or []
 
         if isinstance(space, Dict):
             self.subspaces = {}
             for key in sorted(space.keys()):
-                self.subspaces[key] = NormalizedSpace(space[key], alpha)
+                glob_norm = True if key in keys_to_globally_normalize else False
+                self.subspaces[key] = NormalizedSpace(space[key], alpha, keys_to_globally_normalize=keys_to_globally_normalize, globally_normalize=glob_norm)
+        # only normalize Continuous/IntBox spaces
+        elif isinstance(space, Continuous):
+            if self.globally_normalize:
+                self._means, self._variances = 0.0, 1.0  # single mean/var values for all dimensions of this sub-space (global normalization)
+            else:
+                self._means, self._variances = np.zeros(space.flat_dim), np.ones(space.flat_dim)  # single mean/var values for each(!) value in this space
+        # non-normalizable spaces -> Nones
         else:
-            # parameters per observation space key (if Dict) that help normalize observations following the rule
-            self._means, self._variances = self.init_stats(space)
+            self._means, self._variances = None, None
 
-    @staticmethod
-    def init_stats(space):
-        assert not isinstance(space, Dict)
-        # only normalize Continuous spaces
-        if isinstance(space, Continuous):
-            # TODO: problem with first sample having to be measured against mean=0.0 (makes no sense and doesnt normalize well)
-            return np.zeros(space.flat_dim), np.ones(space.flat_dim)
-        # non-normalizable spaces -> return Nones
-        else:
-            return None, None
+    # overwrite getitem to make this class subscriptable in case we wrap a dict
+    def __getitem__(self, item):
+        return self.subspaces[item]
 
     def update_stats(self, sample, flattened):
         # we are a Dict
@@ -54,12 +67,30 @@ class NormalizedSpace(Space):
                 m = n + subspace.flat_dim
                 subspace.update_stats(sample[key], flattened[n:m])
                 n = m
-        # something to update -> update our mean/variance running averages
+        # global update mean/var (over all elements in flattened)
+        elif isinstance(self._means, float):
+            # TODO: terribly inefficient: fix implementation
+            for single in flattened:
+                self._means = (1 - self.alpha) * self._means + self.alpha * single
+            for single in flattened:
+                self._variances = (1 - self.alpha) * self._variances + self.alpha * np.square(single - self._means)
+        # update our mean/variance running averages
         elif self._means is not None:
             self._means = (1 - self.alpha) * self._means + self.alpha * flattened
             self._variances = (1 - self.alpha) * self._variances + self.alpha * np.square(flattened - self._means)
 
-    def normalize_sample(self, x, store_stats=True):
+    def normalize_sample(self, x, store_stats=True, target=True):
+        """
+
+        :param any x: The sample to be normalized.
+        :param bool store_stats: Whether to store this sample in our mean/variance stats.
+        :param Union[bool,any] target: The target in which to perform normalization operations.
+        True: Normalize in place (in the incoming x).
+        False: Return entirely new sample.
+        any: Perform normalization in the given target.
+        :return: The normalized sample (in the target variable).
+        :rtype: any
+        """
         # utilize the given sample for our stats?
         flat_x = self.flatten(x)
         if store_stats:
@@ -67,35 +98,45 @@ class NormalizedSpace(Space):
 
         # we are a Dict
         if self.subspaces is not None:
-            ret = {}
+            ret = x if target is True else {} if target is False else target
             for key in sorted(self.subspaces.keys()):
                 subspace = self.subspaces[key]
-                ret[key] = subspace.normalize_sample(x[key], store_stats)
+                sub_target = target[key] if not isinstance(target, bool) else target
+                ret[key] = subspace.normalize_sample(x[key], store_stats, sub_target)
             return ret
         # we are a normalizable Space
         elif self._means is not None:
+            # TODO: normalize in place? target==True
+            # TODO: this should work as is with single means and var values (global normalization)
             ret = self.space.unflatten((flat_x - self._means) / (np.sqrt(self._variances) + 1e-8))
             return ret
         else:
             return x
 
-    def rescale_sample(self, x, sigmoid=True):
+    def rescale_sample(self, x, target=True):
         """
         Takes a normalized sample and re-scales the normalized values (0 to 1) in place.
 
         :param Union[dict,int,float] x: The normalized sample to be re-scaled (un-normalized).
-        :return: The re-scaled sample (in place for dict samples).
-        :rtype: Union[dict,int,float]
+        :param Union[bool,any] target: The target in which to perform re-scaling operations.
+        True: Re-scale in place (in the incoming x).
+        False: Return entirely new sample.
+        any: Perform re-scaling in the given target.
+        :return: The re-scaled sample (in the target variable).
+        :rtype: any
         """
         # we are a dict
         if self.subspaces is not None:
             assert isinstance(x, dict)
+            ret = x if target is True else {} if target is False else target
             for key, subsample in x.items():
-                x[key] = self.rescale_sample(subsample)
-            return x  # in place
+                subspace = self.subspaces[key]
+                ret[key] = subspace.rescale_sample(subsample)
+            return ret
 
         # not a dict -> rescale single space
         if isinstance(self.space, Continuous):
+            # TODO: rescale in place? target==True
             lower_bound, upper_bound = self.space.bounds
             offset = 1.0
             factor = 0.5
@@ -111,21 +152,20 @@ class NormalizedSpace(Space):
         return self.normalize_sample(self.space.sample(seed), store_stats)
 
     def contains(self, x):
-        # TODO: answer question of whether x should be a normalized sample or not?
         # right now: treat x as a non-normalized sample of the wrapped space
         return self.space.contains(x)
 
-    def flatten(self, x):
-        return self.space.flatten(x)
+    def flatten(self, x, **kwargs):
+        return self.space.flatten(x, **kwargs)
 
-    def unflatten(self, x):
-        return self.space.unflatten(x)
+    def unflatten(self, x, **kwargs):
+        return self.space.unflatten(x, **kwargs)
 
-    def flatten_batch(self, xs):
-        return self.space.flatten_batch(xs)
+    def flatten_batch(self, xs, **kwargs):
+        return self.space.flatten_batch(xs, **kwargs)
 
-    def unflatten_batch(self, xs):
-        return self.space.unflatten_batch(xs)
+    def unflatten_batch(self, xs, **kwargs):
+        return self.space.unflatten_batch(xs, **kwargs)
 
     @property
     def shape(self):

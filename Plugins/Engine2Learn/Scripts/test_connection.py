@@ -1,11 +1,15 @@
 import socket
 import time
 import msgpack
+from engine2learn.envs.ue4_env import UE4Env
+
+
+env = UE4Env(6025)
 
 print('starting')
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('127.0.0.1', 9999))
+s.connect(('127.0.0.1', 6025))
 
 message = {'cmd':'step'}
 
@@ -15,13 +19,13 @@ message = {'cmd':'reset'}
 
 s.send(msgpack.packb(message))
 
-message = {'cmd':'step', 'delta_time': 0.33}
+message = {'cmd':'step', 'delta_time': 0.33, 'num_ticks': 1}
 
 s.send(msgpack.packb(message))
 
 message = {'cmd':'step', 'delta_time': 0.33,
              'keys': [{'name': 'X', 'pressed': True}, {'name': 'Y', 'pressed': False}],
-             'axis': [{'name': 'Left', 'delta': 1}, {'name': 'Right', 'delta': 0}]
+             'axis': [{'name': 'Left', 'value': 1.0}, {'name': 'Right', 'value': 0.0}]
           }
 
 s.send(msgpack.packb(message))

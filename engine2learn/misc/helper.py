@@ -10,6 +10,7 @@
 """
 
 import scipy.signal
+import tensorflow as tf
 
 
 def list_of_lists(input_, len_, default):
@@ -64,3 +65,8 @@ def discount(x, gamma):
     :rtype: list
     """
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+
+
+# defines a leaky relu activation function
+def lrelu(x, alpha=0.2):
+    return tf.maximum(x, alpha * x)

@@ -10,6 +10,17 @@
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
 #include "E2LObserver.generated.h"
 
+UENUM()
+enum class EE2LDataTypeEnum : uint8
+{
+    E2L_DATATYPE_BOOL,  // a bool type
+    E2L_DATATYPE_INT,  // some int type (uint32, etc..)
+    E2L_DATATYPE_FLOAT,  // some float type (double, float, etc..)
+    // the last item in an enum always HAS to be 'num_items' for us to be able to retrieve the len of the enum
+    E2L_DATATYPE_ENUM,  // an int based enum (like this one here);
+    E2L_DATATYPE_CAM  // a camera output (3D-tensor, w x h x color-depth)
+};
+
 USTRUCT()
 struct FE2LObservedProperty
 {
@@ -26,11 +37,18 @@ struct FE2LObservedProperty
 		bEnabled = true;
 	}
 
+	// get rid of this prop
 	UPROPERTY(EditAnyWhere)
 	float RangeMin;
-
+	// get rid of this prop
 	UPROPERTY(EditAnyWhere)
 	float RangeMax;
+
+	UPROPERTY(EditAnyWhere)
+	EE2LDataTypeEnum DataType;
+
+	UPROPERTY(EditAnyWhere)
+	uint32 Len;
 };
 
 struct FE2LPropertyItem

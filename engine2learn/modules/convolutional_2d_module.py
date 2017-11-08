@@ -40,11 +40,11 @@ class Convolutional2DModule(snt.AbstractModule):
 
     def _build(self, inputs):
         """
-        Builds the _graph accoding to the config (kwargs) given in __init__
+        Builds the _graph according to the config (kwargs) given in __init__
         Applies convolution then - maybe - max pooling to inputs.
 
         :param inputs: The input tensor to this module (usually the image).
-        :return: The out put tensor of the Module
+        :return: The output tensor of the Module
         :rtype: tf.Tensor
         """
 
@@ -79,35 +79,35 @@ class Convolutional2DModule(snt.AbstractModule):
 
         prev_out = inputs
 
-        for l in range(num_layers):
+        for layer in range(num_layers):
             # input shape=[#sam x width x height x depth]
             # get the input depth (the 4th slot of the shape of the input volume (#samples x w x h x in-depth))
-            colors = prev_out.get_shape().as_list()[3]
+            depth = prev_out.get_shape().as_list()[3]
             # create a 4D weight volume (w x h x in-depth x out-depth) where usually w==h
-            kernel_shape = kernel_shapes[l]
+            kernel_shape = kernel_shapes[layer]
             initializer = tf.truncated_normal_initializer(stddev=0.01) if initializers is None\
-                else initializers[0] if len(initializers) == 1 else initializers[l]
-            weights = tf.get_variable("conv_weights", shape=(kernel_shape[0], kernel_shape[1], colors, output_channels[l]),
+                else initializers[0] if len(initializers) == 1 else initializers[layer]
+            weights = tf.get_variable("conv_weights", shape=(kernel_shape[0], kernel_shape[1], depth, output_channels[layer]),
                                       initializer=initializer, dtype=tf.float32)
             biases = None
             if use_bias:
                 # biases are just 1D vectors: shape=[out-depth]
-                biases = tf.get_variable("conv_biases", shape=(output_channels[l],), initializer=initializer, dtype=tf.float32)
+                biases = tf.get_variable("conv_biases", shape=(output_channels[layer],), initializer=initializer, dtype=tf.float32)
 
             # build our conv layer and add the bias (w/h strides given by function params, other strides (samples and in-depth) are always 1)
-            strides = strides[l]
-            padding = "SAME" if paddings is None else paddings[0] if len(paddings) == 1 else paddings[l]
+            strides = strides[layer]
+            padding = "SAME" if paddings is None else paddings[0] if len(paddings) == 1 else paddings[layer]
             conv = tf.nn.conv2d(prev_out, weights, [1, strides[0], strides[1], 1], padding)
             if use_bias:
                 conv = tf.nn.bias_add(conv, biases)
             # add non-linearity
-            activation = tf.nn.relu if activations is None else activations[0] if len(activations) == 1 else activations[l]
+            activation = tf.nn.relu if activations is None else activations[0] if len(activations) == 1 else activations[layer]
             conv = activation(conv)
             # max pool to compress the image (if pool_strides > 1)
             if max_pooling:
-                pool_k_size = pool_k_sizes[l]
-                pool_stride = pool_strides[l]
-                pool_padding = "SAME" if pool_paddings is None else pool_paddings[0] if len(pool_paddings) == 1 else pool_paddings[l]
+                pool_k_size = pool_k_sizes[layer]
+                pool_stride = pool_strides[layer]
+                pool_padding = "SAME" if pool_paddings is None else pool_paddings[0] if len(pool_paddings) == 1 else pool_paddings[layer]
                 conv = tf.nn.max_pool(conv, ksize=[1, pool_k_size[0], pool_k_size[1], 1], strides=[1, pool_stride[0], pool_stride[1], 1], padding=pool_padding)
 
             prev_out = conv

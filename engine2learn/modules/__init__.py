@@ -11,7 +11,9 @@
 
 from .fully_connected_module import FullyConnectedModule
 from .convolutional_2d_module import Convolutional2DModule
+from .splitter import SplitterModule
 from .flatten_layer import FlattenLayer
 
-__all__ = ["FullyConnectedModule", "Convolutional2DModule", "FlattenLayer"]
+
+__all__ = ["FullyConnectedModule", "Convolutional2DModule", "FlattenLayer", "SplitterModule"]
 

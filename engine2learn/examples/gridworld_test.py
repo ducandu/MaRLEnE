@@ -20,8 +20,7 @@ while not obs_dict["_done"]:
     a = random.choice(range(game.action_dim))
     print("action={}".format("left" if a == 0 else "down" if a == 1 else "right" if a == 2 else "up"))
 
-    # TODO: fix this mess with normalizing a when a is not a spaces.Dict!
-    obs_dict = game.step(a)  # apply the action to the Env and retrieve the next observation_dict
+    obs_dict = game.step(action=a)  # apply the action to the Env and retrieve the next observation_dict
 
 # did we receive a reward? if yes -> we won
 if obs_dict["_reward"] > 0:

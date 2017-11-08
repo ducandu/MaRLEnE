@@ -1,21 +1,10 @@
-# prototype of a distributed A3C algo running on distributed tensorflow + TensorFlowOnSpark
+# prototype of the direct future prediction method (Dosovitskiy & Koltun 2017)
+# on a simple grid-world
 
 import numpy as np
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
 from tensorflowonspark import TFCluster
-
-
-# flags for defining the tf.train.ClusterSpec
-#tf.app.flags.DEFINE_string("ps_hosts", "", "comma-separated list of parameter server hostname:port pairs")
-#tf.app.flags.DEFINE_string("worker_hosts", "", "comma-separated list of worker hostname:port pairs")
-#tf.app.flags.DEFINE_string("demo_host", "", "single 'demo' hostname:port specification")
-
-# flags for defining the tf.train.Server
-#tf.app.flags.DEFINE_string("job_name", "", "One of 'ps', 'demo' or 'worker'")
-#tf.app.flags.DEFINE_integer("task_idx", 0, "Index of the task within its job")
-
-#FLAGS = tf.app.flags.FLAGS
 
 
 # Main function to be executed by each worker process.
@@ -28,7 +17,6 @@ def main_fun(args, ctx):
     import os
 
     from engine2learn.envs import normalize
-    from engine2learn.envs.grid_world_complex import GridWorldComplex
     from engine2learn.misc.helper import discount
     from engine2learn.examples.models.a3c_net import A3CPolicyNetwork
 

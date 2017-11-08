@@ -10,7 +10,6 @@
 """
 
 import sonnet as snt
-import tensorflow as tf
 
 
 class FullyConnectedModule(snt.AbstractModule):

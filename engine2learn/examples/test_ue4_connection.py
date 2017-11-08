@@ -26,7 +26,7 @@ if __name__ == "__main__":
     time_start = time.time()
     obs_dict = env.reset()
     print("After reset()")
-    for i in range(300):
+    for i in range(600):
         obs_dict = env.step(delta_time=1/30, axes=("MoveRight", random.choice([-1.0, 1.0, 0.0])), actions=("Jump", random.choice([False, False, False, False, True])))
         print("step {}".format(i))
     time_end = time.time()

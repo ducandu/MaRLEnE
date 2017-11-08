@@ -7,7 +7,7 @@ from unreal_engine.enums import EInputEvent
 import msgpack
 
 
-# global observation_dict to save memory
+# TODO: global observation_dict (populated only once, then written to in place) to save on garbage collection runs
 _OBS_DICT = {}
 
 # cleanup previous tasks

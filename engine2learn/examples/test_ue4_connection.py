@@ -25,6 +25,7 @@ if __name__ == "__main__":
     # do some RL :)
     time_start = time.time()
     obs_dict = env.reset()
+    env.set(setters=("Ledge_test:RenderComponent:bSimulatePhysics", True))
     print("After reset()")
     for i in range(600):
         obs_dict = env.step(delta_time=1/30, axes=("MoveRight", random.choice([-1.0, 1.0, 0.0])), actions=("Jump", random.choice([False, False, False, False, True])))

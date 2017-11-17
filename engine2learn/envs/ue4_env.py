@@ -12,17 +12,19 @@
 """
 
 from .remote_env import RemoteEnv
+from .state_settable_env import StateSettableEnv
 from engine2learn import spaces
 from cached_property import cached_property
+import re
 
 
-class UE4Env(RemoteEnv):
+class UE4Env(RemoteEnv, StateSettableEnv):
     """
     A special RemoteEnv for UE4 game connections.
     Communicates with the remote to receive information on the definitions of action- and observation spaces.
     """
     def __init__(self, port=6025, host="localhost", **kwargs):
-        super().__init__(port, host)
+        RemoteEnv.__init__(self, port, host)
 
         # TODO: remove **kwargs (unless needed for other params)
         # TODO: 20tab: get the action mappings, axis mappings, observation properties, observation cameras from the remote and leave the rest of this c'tor as is
@@ -40,7 +42,7 @@ class UE4Env(RemoteEnv):
         # self.observation_cameras = None  # kwargs.get("observation_cameras")
 
     def connect(self):
-        super().connect()
+        RemoteEnv.connect(self)
         
         # get specs from our remote
         self.send({"cmd": "get_spec"})
@@ -57,10 +59,35 @@ class UE4Env(RemoteEnv):
         if "action_space" in self.__dict__:
             del self.__dict__["action_space"]
 
+    def set(self, setters, **kwargs):
+        if "cmd" in kwargs:
+            raise KeyError("Key 'cmd' must not be present in **kwargs to method `set`!")
+
+        # forward kwargs to remote (only add command: set)
+        message = kwargs
+        message["cmd"] = "set"
+
+        # sanity check setters
+        # solve single tuple with prop-name and value -> should become a list (len=1) of this tuple
+        if len(setters) >= 2 and not isinstance(setters[1], (list, tuple)):
+            setters = list((setters,))
+        for set_cmd in setters:
+            assert re.match(r'\w+(:\w+)*', set_cmd[0]), "ERROR: property ({}) in setter-command does not match correct pattern!".format(set_cmd[0])
+            if len(set_cmd) == 3:
+                assert isinstance(set_cmd[2], bool), "ERROR: 3rd item in setter-command must be of type bool ('is_relative' flag)!"
+        message["setters"] = setters
+
+        self.send(message)
+        # wait for response
+        response = self.recv()
+        if b"obs_dict" not in response:
+            raise RuntimeError("Message without field 'obs_dict' received!")
+        return response[b"obs_dict"]
+
     def step(self, delta_time=1/60, num_ticks=4, actions=None, axes=None, **kwargs):
         assert 1/60 <= delta_time < 1/3  # make sure our deltas are in some reasonable range
         assert 1 <= num_ticks <= 20  # same for num_ticks
-        # retranslate incoming action names into keyboard keys for the server
+        # re-translate incoming action names into keyboard keys for the server
         try:
             if actions is None:
                 actions = []
@@ -78,11 +105,7 @@ class UE4Env(RemoteEnv):
         #     'action': [{'name': 'X', 'pressed': True}, {'name': 'Y', 'pressed': False}],
         #     'axis': [{'name': 'Left', 'delta': 1}, {'name': 'Right', 'delta': 0}]
         # }
-        return super().step(delta_time=delta_time, num_ticks=num_ticks, actions=actions, axes=axes, **kwargs)
-
-    # not necessary: implemented by RemoteEnv
-    #def reset(self):
-    #    return NotImplementedError
+        return RemoteEnv.step(self, delta_time=delta_time, num_ticks=num_ticks, actions=actions, axes=axes, **kwargs)
 
     @cached_property
     def observation_space(self):

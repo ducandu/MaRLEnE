@@ -87,7 +87,7 @@ class RemoteEnv(Env):
                 if message[b"status"] == b"ok":
                     return message
                 else:
-                    raise RuntimeError("RemoteEnv server error: "+message["message"])
+                    raise RuntimeError("RemoteEnv server error: "+message[b"message"].decode())
             else:
                 raise RuntimeError("Message without field 'status' received!")
         raise RuntimeError("No message encoded in data stream (data stream had len={})")
@@ -98,7 +98,7 @@ class RemoteEnv(Env):
         We are assuming local connections and fast executions (single tick). Also, we want to avoid RL-algos to have asynchronous events within themselves.
         """
         if "cmd" in kwargs:
-            raise KeyError("Key 'cmd' must be present in **kwargs to method `step`!")
+            raise KeyError("Key 'cmd' must not be present in **kwargs to method `step`!")
         
         # forward kwargs to remote (only add command: step)
         message = kwargs

@@ -270,10 +270,6 @@ if __name__ == "__main__":
         setSparkHome("/home/ubuntu/spark-2.2.0-bin-hadoop2.7")  # TODO: fix this environment variable mess
     spark_context = SparkContext(conf=conf)
 
-    # TEST: try to pass context on to workers
-    # doesn't work -> no spark_context on workers, ever, only on driver!
-    #parser.add_argument("--spark_context", help="Our Spark context", default=spark_context, action="store_true")
-
     # specify the cluster specs
     num_executors = conf.get("spark.executor.instances", 5)
     num_ps = 1

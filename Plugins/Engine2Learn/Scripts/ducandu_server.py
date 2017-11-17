@@ -1,3 +1,17 @@
+"""
+ -------------------------------------------------------------------------
+ engine2learn - Plugins/Engine2Learn/Scripts/ducandu_server.py
+
+ The server running inside UE4 (UnrealEnginePython) and listening on a
+ port for incoming ML connections.
+ Handles incoming commands from the ML environment such as stepping
+ through the game, setting properties, resetting the game, etc..
+
+ created: 2017/10/26 in PyCharm
+ (c) 2017-2018 Roberto DeLoris (20tab) & Sven Mika (ducandu)
+ -------------------------------------------------------------------------
+"""
+
 import unreal_engine as ue
 import asyncio
 import ue_asyncio
@@ -5,9 +19,12 @@ from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver,
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
 import msgpack
+import re
+from time import sleep
+import pydevd
 
 
-# TODO: global observation_dict (populated only once, then written to in place) to save on garbage collection runs
+# TODO: global observation_dict (init only once, then write to it in place) to save on garbage collection runs
 _OBS_DICT = {}
 
 # cleanup previous tasks
@@ -17,13 +34,19 @@ for task in asyncio.Task.all_tasks():
 
 # search for the currently running world
 def get_playing_world():
+    """
+    UE4 world types:
+    None=0, Game=1, Editor=2, PIE=3, EditorPreview=4, GamePreview=5, Inactive=6
+
+    :return: Returns the currently playing UE4 world.Returns the currently playing UE4 world.
+    Returns the first world within all worlds that is either a Game OR and PIE (play in editor) world.
+    :rtype: UnrealEnginePython UWorld
+    """
     playing_world = None
-    ue.log("inside get_playing_world()")
     for world in ue.all_worlds():
-        if world.get_world_type() in (1, 3):
+        if world.get_world_type() in (1, 3):  # game or pie
             playing_world = world
             break
-    ue.log("returning from get_playing_world()")
     return playing_world
 
 
@@ -52,6 +75,184 @@ def reset(message):
     o = compile_obs_dict()
     ue.log("-> sending back status ok and obs_dict {}.".format(o))
     return {"status": "ok", "obs_dict": o}
+
+
+def set_props(message):
+    """
+    Interface that allows us to set properties of different Actors/Components in the playing world.
+    Arguments are passed in as a list (kwargs parameter: 'setters') of tuples:
+    (/?actor:[component(s):]?prop-name, value, is_relative)
+    - actor/component/prop string could be a pattern. The syntax corresponds to perl regular expressions if the
+    string starts with a '/'
+    - value: the new value for the property to be set to
+    - is_relative: if True, the old value of the property will be incremented by the given value (negative values decrement the property value)
+
+    :param dict message: The incoming message from the client.
+    :return: A response dict to be sent back to the client.
+    :rtype: dict
+    """
+
+    playing_world = get_playing_world()
+    if not playing_world:
+        return {"status": "error", "message": "No playing world!"}
+
+    if b"setters" not in message:
+        return {"status" : "error", "message": "Field 'setters' missing in 'set' command message!"}
+
+    actors = {}  # dict of uobjects: key=name (w/o number extension), value: list of actors that share this key (name)
+    for a in playing_world.all_actors():
+        name = re.sub(r'_\d+$', "", a.get_name(), 1)  # remove trailing _[digits]
+        if name not in actors:
+            actors[name] = [a]
+        else:
+            actors[name].append(a)
+
+    # DEBUG
+    import pydevd
+    import sys
+    sys.path.append("c:/program files/pycharm 2017.2.2/debug-eggs/")  # always need to add this to the sys.path (location of PyCharm debug eggs)
+    pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    # END: DEBUG
+
+    # each set_cmd is a tuple
+    for set_cmd in message[b"setters"]:
+        if not isinstance(set_cmd, (list, tuple)) or len(set_cmd) < 2:
+            return {"status": "error", "message": "Malformatted setter command {}. Needs to be ([actor:prop], [value][, is_relative]?).".format(set_cmd)}
+        prop_spec, value, is_relative = set_cmd[0].decode(), set_cmd[1], False if len(set_cmd) < 3 else set_cmd[2]
+        uobjects = None  # the final uobject (could be an actor or a component or a component of a component, etc..)
+        while True:
+            mo = re.match(r':?(\w+)((:\w+)*)', prop_spec)
+            if not mo:
+                return {"status" : "error",
+                        "message": "Malformatted actor[:comp]?:property specifier ({}). "+
+                                   "Needs to be [actor-pattern[:comp-pattern(s)]*:property-pattern].".format(prop_spec)}
+            next_, prop_spec, _ = mo.groups()
+            # next_ is a pattern for actor names
+            if uobjects is None:
+                uobjects = []
+                # go through list of actors to collect the matching ones
+                for a, l in actors.items():
+                    if re.match(next_, a):
+                        uobjects.extend(l)  # playing_world.find_object(next_)
+            # next_ is a pattern for some sub-component of an Actor/other Component (still something left of the prop_spec)
+            elif prop_spec:
+                # go through list of uobjects to see whether they have components with the given name (next_)
+                uobjects_next = []
+                for uobj in uobjects:
+                    comps = uobj.get_actor_components()
+                    for comp in comps:
+                        if re.match(next_, comp.get_name()):
+                            uobjects_next.append(comp)  # playing_world.find_object(next_)
+                # update our list of matching components
+                uobjects = uobjects_next
+            # next_ is the name of the property
+            else:
+                # go through all collected uobjects and change the property
+                for uobj in uobjects:
+                    print("trying to change uobj->{}".format(next_))
+                    if uobj.has_property(next_):
+                        if is_relative:
+                            old_val = uobj.get_property(next_)
+                            uobj.set_property(next_, old_val + value)
+                        else:
+                            uobj.set_property(next_, value)
+                break
+
+    return {"status": "ok", "obs_dict": compile_obs_dict()}
+
+
+"""    processing_dict = {"_playing_world": {"uobj": [playing_world], "is_final": False}}
+    only_final_entries = False
+    is_first = True
+
+
+    while not only_final_entries:
+        # copy dict
+        processing_dict_cpy = processing_dict.copy()
+        only_final_entries = True
+        for key, entry in processing_dict.items():
+            if entry["is_final"]:
+                continue
+            entry["is_final"] = True
+            print("Processing item: "+key)
+            list_ = entry["uobj"]  # type: list
+            no_comps = True
+            # get all sub-comps of all actors under this name (usually just one) and add them to dict, then repeat
+            # - the very first time this is run, uobj is the playing world (get actors, not comps)
+            for uobj in list_:
+                print("\tuobj: {}".format(uobj))
+                comps = uobj.all_actors() if is_first else uobj.get_actor_components()
+                if len(comps) > 0:
+                    no_comps = False
+                for comp in comps:
+                    print("\t\tsub-comp: {}".format(comp.get_name()))
+                    comp_name = ("" if is_first else key+":")+re.sub(r'_\d+$', "", comp.get_name(), 1)  # remove trailing _[digits]
+                    if comp_name not in processing_dict_cpy:
+                        processing_dict_cpy[comp_name] = {"uobj": [comp], "is_final": False}
+                    else:
+                        processing_dict_cpy[comp_name]["uobj"].append(comp)
+            if no_comps is False:
+                only_final_entries = False
+
+        is_first = False
+
+        processing_dict = processing_dict_cpy
+        processing_dict.pop("_playing_world", None)  # remove playing world (seed item) after first round
+
+        print("Now keys in dict before next round: {}".format(processing_dict.keys()))
+
+        if only_final_entries:
+            print("No next round")
+            break
+"""
+"""
+    # temporary solution: collect all actors+[components]* in a list, then go through the list regex'ing for the incoming expression
+    # - collect matching actors/components in new list and set properties of these actors to the given value
+    processing_list = playing_world.all_actors()
+    #final_list = processing_list[:]
+    ongoing = True
+    while ongoing:
+        for uobj in processing_list:
+            comps = uobj.get_actor_components()
+            #if len(comps) == 0:
+            #    ongoing = False
+            # add the components to this actor and add the new combination to the final_list
+
+
+    if b"setters" in message:
+        # each set_cmd is a tuple
+        for set_cmd in message[b"setters"]:
+            prop_spec = set_cmd[0].decode()
+            uobject = None  # the final uobject (could be an actor or a component or a component of a component, etc..)
+            prop_name = None  # the final property to set to a new value
+            while True:
+                mo = re.match(r'(\w+):(\w+)(:\w+)*', prop_spec)
+                assert mo
+                next_ = mo.group(1)
+                # next_ is an Actor within the world
+                if uobject is None:
+                    # TODO: handle names+underscore+number
+                    uobject = playing_world.find_object(next_)
+                # next_ is a Component of an Actor/other Component
+                else:
+                    # TODO: handle names+underscore+number
+                    uobject = uobject.get_actor_component(next_)
+
+    def print_props(uobject, num_tabs):
+        for prop in uobject.properties():
+            print(("\t" * num_tabs)+"->"+prop)
+
+    # DEBUG: print out all actors' names for fun
+    actors = playing_world.all_actors()
+    print("All actor's names")
+    for uobj in actors:
+        print("\t"+uobj.get_name())
+        print_props(uobj, 2)
+        comps = uobj.get_actor_components()
+        for c in comps:
+            print("\t\t:"+c.get_name())
+            print_props(c, 3)
+"""
 
 
 def step(message):
@@ -113,7 +314,7 @@ def compile_obs_dict():
             if parent.is_a(SceneCaptureComponent2D):
                 texture = parent.TextureTarget
                 if not texture:
-                    return {"status": "error", "message": "SceneCapture2DComponent (parent of Observer {}) does not have a TextureTarget "+
+                    return {"status": "error", "message": "SceneCapture2DComponent (parent of Observer {}) does not have a TextureTarget " +
                                                           "(call `get_spec` first on the UE4Env)!".format(obs_name)
                             }
                 parent.CaptureScene()  # trigger scene capture
@@ -227,6 +428,13 @@ def get_spec():
     
 
 def manage_message(message):
+    """
+    Handles all incoming message by forwarding the message to one of our command-handling functions (e.g. reset, step, etc..)
+
+    :param dict message: The incoming message dict.
+    :return: A response dict to be sent back to the client.
+    :rtype: dict
+    """
     print(message)
 
     if b"cmd" not in message:
@@ -236,6 +444,8 @@ def manage_message(message):
         return step(message)
     elif cmd == b"reset":
         return reset(message)
+    elif cmd == b"set":
+        return set_props(message)
     elif cmd == b"get_spec":
         return get_spec()
 

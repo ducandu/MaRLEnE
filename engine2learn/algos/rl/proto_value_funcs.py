@@ -24,7 +24,7 @@ def get_pvfs(env, state_components=None, num_transitions=None, num_rows=None):
     A function to retrieve proto-value functions [2] for an Env (MDP) using the approach in [1]
     TODO: answer question on whether to normalize the env beforehand.
 
-    :param Env env: The Env object to explore to create PVFs for.
+    :param Env env: The Env object to explore and to create PVFs for.
     :param list state_components: A list of components from the observation dictionaries.
     :param int num_transitions: The number of state transitions to do (by random walk)
     :param int num_rows: The number of transitions to include in the final incidence matrix.

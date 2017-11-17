@@ -203,6 +203,7 @@ Vagrant.configure("2") do |config|
 
     # get openAI gym (including Atari Envs)
     cd
+    rm -rf gym
     git clone https://github.com/openai/gym.git
     cd gym/
     pip install --user -e .

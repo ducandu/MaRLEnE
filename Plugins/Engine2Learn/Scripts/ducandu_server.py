@@ -1,7 +1,7 @@
 import unreal_engine as ue
 import asyncio
 import ue_asyncio
-from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver, CameraComponent, SceneCaptureComponent2D, InputSettings
+from unreal_engine.classes import Engine2LearnSettings, GameplayStatics, E2LObserver, CameraComponent, SceneCaptureComponent2D, InputSettings
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
 import msgpack
@@ -96,6 +96,9 @@ def compile_obs_dict():
     playing_world = get_playing_world()
 
     for observer in E2LObserver.GetRegisteredObservers():
+        # the observer cold be destroyed
+        if not observer.is_valid():
+            continue
         if not observer.has_world():
             continue
         # observer lives in another world
@@ -281,7 +284,7 @@ async def spawn_server(host, port):
 Main Program: Get UE4 settings and start listening on port for incoming connections.
 """
 
-settings = ue.get_mutable_default(DucanduSettings)
+settings = ue.get_mutable_default(Engine2LearnSettings)
 if settings.Address and settings.Port:
     asyncio.ensure_future(spawn_server(settings.Address, settings.Port))
 else:

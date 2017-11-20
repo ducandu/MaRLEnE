@@ -18,11 +18,20 @@ import ue_asyncio
 from unreal_engine.classes import DucanduSettings, GameplayStatics, E2LObserver, CameraComponent, SceneCaptureComponent2D, InputSettings
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
-import msgpack
-import re
-from time import sleep
-import pydevd
 
+import msgpack
+import numpy as np
+import msgpack_numpy as mnp
+
+import re
+import pydevd
+import sys
+
+
+# make msgpack use the numpy-specific de/encoders
+mnp.patch()
+
+sys.path.append("c:/program files/pycharm 2017.2.2/debug-eggs/")  # always need to add this to the sys.path (location of PyCharm debug eggs)
 
 # TODO: global observation_dict (init only once, then write to it in place) to save on garbage collection runs
 _OBS_DICT = {}
@@ -69,8 +78,15 @@ def reset(message):
     # reset level
     playing_world.restart_level()
 
-    # pause the game
-    GameplayStatics.SetGamePaused(playing_world, True)
+    # pause the game (in our weird way to accommodate difference between actual game paused and simulator game paused
+    is_paused = GameplayStatics.IsGamePaused(playing_world)
+    ue.log("->is paused={}".format(is_paused))
+    if is_paused:
+        GameplayStatics.SetGamePaused(playing_world, False)
+        playing_world.world_tick(1/600.0)  # mini tick?
+    success = GameplayStatics.SetGamePaused(playing_world, True)
+    if not success:
+        ue.log("->WARNING: Game could not be paused after reset!")
 
     o = compile_obs_dict()
     ue.log("-> sending back status ok and obs_dict {}.".format(o))
@@ -96,7 +112,7 @@ def set_props(message):
     if not playing_world:
         return {"status": "error", "message": "No playing world!"}
 
-    if b"setters" not in message:
+    if "setters" not in message:
         return {"status" : "error", "message": "Field 'setters' missing in 'set' command message!"}
 
     actors = {}  # dict of uobjects: key=name (w/o number extension), value: list of actors that share this key (name)
@@ -108,17 +124,14 @@ def set_props(message):
             actors[name].append(a)
 
     # DEBUG
-    import pydevd
-    import sys
-    sys.path.append("c:/program files/pycharm 2017.2.2/debug-eggs/")  # always need to add this to the sys.path (location of PyCharm debug eggs)
-    pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
     # END: DEBUG
 
     # each set_cmd is a tuple
-    for set_cmd in message[b"setters"]:
+    for set_cmd in message["setters"]:
         if not isinstance(set_cmd, (list, tuple)) or len(set_cmd) < 2:
             return {"status": "error", "message": "Malformatted setter command {}. Needs to be ([actor:prop], [value][, is_relative]?).".format(set_cmd)}
-        prop_spec, value, is_relative = set_cmd[0].decode(), set_cmd[1], False if len(set_cmd) < 3 else set_cmd[2]
+        prop_spec, value, is_relative = set_cmd[0], set_cmd[1], False if len(set_cmd) < 3 else set_cmd[2]
         uobjects = None  # the final uobject (could be an actor or a component or a component of a component, etc..)
         while True:
             mo = re.match(r':?(\w+)((:\w+)*)', prop_spec)
@@ -219,10 +232,10 @@ def set_props(message):
             # add the components to this actor and add the new combination to the final_list
 
 
-    if b"setters" in message:
+    if "setters" in message:
         # each set_cmd is a tuple
-        for set_cmd in message[b"setters"]:
-            prop_spec = set_cmd[0].decode()
+        for set_cmd in message["setters"]:
+            prop_spec = set_cmd[0]
             uobject = None  # the final uobject (could be an actor or a component or a component of a component, etc..)
             prop_name = None  # the final property to set to a new value
             while True:
@@ -257,35 +270,46 @@ def set_props(message):
 
 def step(message):
     """
-    Performs a single step in the game (could be several ticks) given some action/axis mappings and maybe some set commands.
+    Performs a single step in the game (could be several ticks) given some action/axis mappings.
+    The number of ticks to perform can be specified through `num_ticks` (default=4).
+    The fake amount of time (dt) that each tick will use can be specified through `delta_time` (default=1/60s).
     """
     playing_world = get_playing_world()
     if not playing_world:
         return {"status": "error", "message": "No playing world!"}
 
-    delta_time = message.get(b"delta_time", 1.0/60.0)  # the force-set delta time (dt) for each tick
-    num_ticks = message.get(b"num_ticks", 4)  # the number of ticks to work through (all with the given action/axis mappings valid)
+    delta_time = message.get("delta_time", 1.0/60.0)  # the force-set delta time (dt) for each tick
+    num_ticks = message.get("num_ticks", 4)  # the number of ticks to work through (all with the given action/axis mappings valid)
     controller = playing_world.get_player_controller()
 
-    ue.log("step command delta={} ticks={}".format(delta_time, num_ticks))
+    ue.log("step command: delta_time={} num_ticks={}".format(delta_time, num_ticks))
+
+    # DEBUG
+    pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    # END: DEBUG
 
     # unpause the game and then perform n ticks with the given inputs (actions and axes)
-    GameplayStatics.SetGamePaused(playing_world, False)
+    #GameplayStatics.SetGamePaused(playing_world, True)
+    was_unpaused = GameplayStatics.SetGamePaused(playing_world, False)
+    if not was_unpaused:
+        ue.log("WARNING: un-pausing game for next step was not successful!")
     for _ in range(num_ticks):
         #controller.input_axis(Key(KeyName="Right"), -1.0, delta_time)
-        if b"axes" in message:
-            for axis in message[b"axes"]:
-                key_name = axis[0].decode()
+        if "axes" in message:
+            for axis in message["axes"]:
+                key_name = axis[0]
                 ue.log("-> axis {}={} (key={})".format(key_name, axis[1], Key(KeyName=key_name)))
                 controller.input_axis(Key(KeyName=key_name), axis[1], delta_time)
-        if b"actions" in message:
-            for action in message[b"actions"]:
-                action_name = action[0].decode()
+        if "actions" in message:
+            for action in message["actions"]:
+                action_name = action[0]
                 ue.log("-> action {}={}".format(action_name, action[1]))
                 controller.input_key(Key(KeyName=action_name), EInputEvent.IE_Pressed if action[1] else EInputEvent.IE_Released)
         playing_world.world_tick(delta_time)
     # pause again
-    GameplayStatics.SetGamePaused(playing_world, True)
+    was_paused = GameplayStatics.SetGamePaused(playing_world, True)
+    if not was_paused:
+        ue.log("->WARNING: re-pausing game after step was not successful!")
 
     return {"status": "ok", "obs_dict": compile_obs_dict()}
 
@@ -311,6 +335,8 @@ def compile_obs_dict():
 
         # this observer returns a camera image
         if observer.bScreenCapture:
+            texture = None  # the texture object to use for getting the image
+
             if parent.is_a(SceneCaptureComponent2D):
                 texture = parent.TextureTarget
                 if not texture:
@@ -318,15 +344,11 @@ def compile_obs_dict():
                                                           "(call `get_spec` first on the UE4Env)!".format(obs_name)
                             }
                 parent.CaptureScene()  # trigger scene capture
-                # TODO: copy the bytes into the same memory location each time to avoid garbage collection
-                _OBS_DICT[obs_name+":camera"] = bytes(texture.render_target_get_data())
             elif parent.is_a(CameraComponent):
                 scene_capture = get_child_component(parent, SceneCaptureComponent2D)
                 if scene_capture:
                     texture = scene_capture.TextureTarget
                     scene_capture.CaptureScene()
-                    # TODO: copy the bytes into the same memory location each time to avoid garbage collection
-                    _OBS_DICT[obs_name+":camera"] = bytes(texture.render_target_get_data())
                 else:
                     return {"status": "error", "message": "CameraComponent (parent of Observer {}) does not have a SceneCapture2DComponent "+
                                                           "(call `get_spec` first on the UE4Env)!".format(obs_name)
@@ -334,6 +356,13 @@ def compile_obs_dict():
             else:
                 return {"status": "error",
                         "message": "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture2D!".format(obs_name)}
+
+            # TODO: copy the bytes into the same memory location each time to avoid garbage collection
+            byte_string = bytes(texture.render_target_get_data())
+            np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
+            img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]
+
+            _OBS_DICT[obs_name + ":camera"] = img
 
         for observed_prop in observer.ObservedProperties:
             if not observed_prop.bEnabled:
@@ -380,9 +409,10 @@ def get_spec():
         # make sure this observer is attached so some parent Actor/Component
         parent = observer.GetAttachParent()
         if not parent:
-           continue
+            continue
 
         obs_name = observer.get_name()
+        ue.log("DEBUG: get_spec observer {}".format(obs_name))
 
         # this observer returns a camera image
         if observer.bScreenCapture:
@@ -390,22 +420,25 @@ def get_spec():
                 texture = parent.TextureTarget
                 if not texture:
                     # todo pass texture size and format
+                    ue.log("DEBUG: no texture A texture={}".format(texture))
                     texture = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
                     parent.TextureTarget = texture
             elif parent.is_a(CameraComponent):
                 scene_capture = get_child_component(parent, SceneCaptureComponent2D)
                 if scene_capture:
                     texture = scene_capture.TextureTarget
+                    ue.log("DEBUG: scene capture is already there B texture={}".format(texture))
                 # if it is a CameraComponent without SceneCaptureComponent2D -> generate one dynamically
                 else:
                     scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "Engine2LearnScreenCapture", parent)
                     scene_capture.bCaptureEveryFrame = False
                     scene_capture.bCaptureOnMovement = False
                     texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
+                    ue.log("DEBUG: scene capture is created C texture={}".format(texture))
                     # TODO: setup camera transform and options
             else:
                 return {"status": "error", "message":
-                    "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture!".format(obs_name)}
+                        "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture!".format(obs_name)}
 
             #OBSOLETE? TRY w/o min/max: observation_space_desc[name+":camera"] = {"type": "image_rgb", "mins": 0, "maxs": 255, "shape": (texture.SizeX, texture.SizeY, 3)}
             observation_space_desc[obs_name+":camera"] = {"type": "cam", "shape": (texture.SizeX, texture.SizeY, 3)}  # 1=int
@@ -437,16 +470,16 @@ def manage_message(message):
     """
     print(message)
 
-    if b"cmd" not in message:
+    if "cmd" not in message:
         return {"status": "error", "message": "Field 'cmd' missing in message!"}
-    cmd = message[b"cmd"]
-    if cmd == b"step":
+    cmd = message["cmd"]
+    if cmd == "step":
         return step(message)
-    elif cmd == b"reset":
+    elif cmd == "reset":
         return reset(message)
-    elif cmd == b"set":
+    elif cmd == "set":
         return set_props(message)
-    elif cmd == b"get_spec":
+    elif cmd == "get_spec":
         return get_spec()
 
     return {"status": "error", "message": "Unknown method ({}) to call!".format(cmd)}
@@ -454,7 +487,7 @@ def manage_message(message):
 
 # this is called whenever a new client connects
 async def new_client_connected(reader, writer):
-    name = writer.get_extra_info('peername')
+    name = writer.get_extra_info("peername")
     ue.log('new client connection from {0}'.format(name))
     #unpacker = msgpack.Unpacker(encoding="ascii")
     unpacker = msgpack.Unpacker()
@@ -469,7 +502,7 @@ async def new_client_connected(reader, writer):
         for message in unpacker:
             response = msgpack.packb(manage_message(message))
             len_ = len(response)
-            ue.log("Got message cmd={} -> sending response of len={}".format(message[b"cmd"], len_))
+            ue.log("Got message cmd={} -> sending response of len={}".format(message["cmd"], len_))
             writer.write(bytes("{:08d}".format(len_), encoding="ascii")+response)  # prepend 8-byte len field to all our messages
 
     ue.log('client {0} disconnected'.format(name))

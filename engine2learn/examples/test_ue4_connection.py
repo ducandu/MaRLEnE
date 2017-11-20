@@ -12,6 +12,8 @@
 from engine2learn.envs.ue4_env import UE4Env
 import time
 import random
+import numpy as np
+from PIL import Image
 
 
 if __name__ == "__main__":
@@ -25,11 +27,23 @@ if __name__ == "__main__":
     # do some RL :)
     time_start = time.time()
     obs_dict = env.reset()
-    env.set(setters=("Ledge_test:RenderComponent:bSimulatePhysics", True))
+    img = Image.fromarray(obs_dict["Observer:camera"], "RGB")
+    img.save("my.png")  # save first received image as a sanity-check
+
+    #env.set(setters=("Ledge_test:RenderComponent:bSimulatePhysics", True))
     print("After reset()")
-    for i in range(600):
-        obs_dict = env.step(delta_time=1/30, axes=("MoveRight", random.choice([-1.0, 1.0, 0.0])), actions=("Jump", random.choice([False, False, False, False, True])))
-        print("step {}".format(i))
+    num_ticks_per_action = 4 # 3600  # 3600 should cover 1 min in the real game (with 1/60 delta time per tick)
+    #delta_time = 1 / int(60 / num_ticks_per_action)
+    delta_time = 1 / 60
+    for i in range(300):
+        obs_dict = env.step(delta_time=delta_time, num_ticks=num_ticks_per_action,
+                            axes=("MoveRight", np.random.choice([-1.0, -1.0, 1.0, 1.0, 0.0])),
+                            actions=("Shoot", random.choice([False, False, False, True])))
+        time_now = time.time()
+        ticks = (i + 1) * num_ticks_per_action
+        would_be_play_time = ticks * delta_time
+        real_time = (time_now - time_start)
+        print("ticks={} would-be-play-time={:.2f}sec real-time={:.2f}sec".format(ticks, would_be_play_time, real_time))
     time_end = time.time()
 
     print("Whole thing took {} seconds.".format(time_end - time_start))

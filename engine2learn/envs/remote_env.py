@@ -15,6 +15,9 @@
 from .base import Env
 import socket
 import msgpack
+import msgpack_numpy as mnp
+import errno
+import os
 
 
 class RemoteEnv(Env):
@@ -23,6 +26,8 @@ class RemoteEnv(Env):
         A remote Environment that one can connect to through tcp.
         Implements a simple msgpack protocol to get the step/reset/etc.. commands to the remote server and simply waits (blocks) for a response.
         """
+        mnp.patch()  # make all msgpack methods use the numpy-aware de/encoders
+
         super().__init__()
         self.port = port
         self.host = host
@@ -40,11 +45,9 @@ class RemoteEnv(Env):
             raise RuntimeError("A socket is already connected to {}:{}!".format(self.host, self.port))
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(5)
-        try:
-            self.socket.connect((self.host, self.port))
-        except socket.error as e:
-            print("Error when trying to connect to {}:{}: {}".format(self.host, self.port, e))
-            raise e  # re-raise
+        err = self.socket.connect_ex((self.host, self.port))
+        if err != 0:
+            print("Error when trying to connect to {}:{}: ERRNO={} ERROR={}".format(self.host, self.port, errno.errorcode[err], os.strerror(err)))
 
     def disconnect(self):
         """
@@ -83,14 +86,27 @@ class RemoteEnv(Env):
 
         # get the data
         for message in unpacker:
-            if b"status" in message:
-                if message[b"status"] == b"ok":
+            if "status" in message:
+                if message["status"] == "ok":
                     return message
                 else:
-                    raise RuntimeError("RemoteEnv server error: "+message[b"message"].decode())
+                    raise RuntimeError("RemoteEnv server error: "+message["message"])
             else:
                 raise RuntimeError("Message without field 'status' received!")
         raise RuntimeError("No message encoded in data stream (data stream had len={})")
+
+    def reset(self):
+        """
+        same as step (no kwargs to pass), but needs to block and return observation_dict
+        - stores the received observation in self.last_observation
+        """
+        # send command
+        self.send({"cmd": "reset"})
+        # wait for response
+        response = self.recv()
+        if "obs_dict" not in response:
+            raise RuntimeError("Message without field 'obs_dict' received!")
+        return response["obs_dict"]
 
     def step(self, **kwargs):
         """
@@ -106,22 +122,9 @@ class RemoteEnv(Env):
         self.send(message)
         # wait for response
         response = self.recv()
-        if b"obs_dict" not in response:
+        if "obs_dict" not in response:
             raise RuntimeError("Message without field 'obs_dict' received!")
-        return response[b"obs_dict"]
-
-    def reset(self):
-        """
-        same as step (no kwargs to pass), but needs to block and return observation_dict
-        - stores the received observation in self.last_observation
-        """
-        # send command
-        self.send({"cmd": "reset"})
-        # wait for response
-        response = self.recv()
-        if b"obs_dict" not in response:
-            raise RuntimeError("Message without field 'obs_dict' received!")
-        return response[b"obs_dict"]
+        return response["obs_dict"]
 
     @property
     def action_space(self):

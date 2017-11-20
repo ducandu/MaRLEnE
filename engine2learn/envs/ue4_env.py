@@ -49,9 +49,9 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         response = self.recv()
 
         # observers
-        self.observation_space_desc = response[b"observation_space_desc"]
+        self.observation_space_desc = response["observation_space_desc"]
         # action-mappings
-        self.action_space_desc = response[b"action_space_desc"]
+        self.action_space_desc = response["action_space_desc"]
 
         # invalidate our observation_space and action_space caches
         if "observation_space" in self.__dict__:
@@ -80,13 +80,13 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         self.send(message)
         # wait for response
         response = self.recv()
-        if b"obs_dict" not in response:
+        if "obs_dict" not in response:
             raise RuntimeError("Message without field 'obs_dict' received!")
-        return response[b"obs_dict"]
+        return response["obs_dict"]
 
     def step(self, delta_time=1/60, num_ticks=4, actions=None, axes=None, **kwargs):
-        assert 1/60 <= delta_time < 1/3  # make sure our deltas are in some reasonable range
-        assert 1 <= num_ticks <= 20  # same for num_ticks
+        #assert 1/600 <= delta_time < 1  # make sure our deltas are in some reasonable range
+        #assert 1 <= num_ticks <= 20  # same for num_ticks
         # re-translate incoming action names into keyboard keys for the server
         try:
             if actions is None:
@@ -113,19 +113,19 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         # derive observation space from observation_space_desc
         if self.observation_space_desc:
             for key, desc in self.observation_space_desc.items():
-                type_ = desc[b"type"]
+                type_ = desc["type"]
                 space = None
 
-                if type_ == b"bool":
+                if type_ == "bool":
                     space = spaces.Bool()
-                elif type_ == b"int":
-                    space = spaces.IntBox(None, None, shape=() if desc[b"len"] == 1 else (desc[b"len"],))
-                elif type_ == b"float":
-                    space = spaces.Continuous(None, None, shape=() if desc[b"len"] == 1 else (desc[b"len"],))
-                elif type_ == b"enum":
-                    space = spaces.Discrete(desc[b"len"])
-                elif type_ == b"cam":
-                    space = spaces.IntBox(0, 255, shape=desc[b"shape"])
+                elif type_ == "int":
+                    space = spaces.IntBox(None, None, shape=() if desc["len"] == 1 else (desc["len"],))
+                elif type_ == "float":
+                    space = spaces.Continuous(None, None, shape=() if desc["len"] == 1 else (desc["len"],))
+                elif type_ == "enum":
+                    space = spaces.Discrete(desc["len"])
+                elif type_ == "cam":
+                    space = spaces.IntBox(0, 255, shape=desc["shape"])
 
                 observation_space[key] = space
 
@@ -137,7 +137,7 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         # derive action space from action_space_desc
         if self.action_space_desc:
             for key, properties in self.action_space_desc.items():
-                if properties[b"type"] == b"action":
+                if properties["type"] == "action":
                     action_space[key] = spaces.Bool()
                 else:
                     action_space[key] = spaces.Continuous(None, None)
@@ -168,13 +168,15 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         ret = []
         for a in abstract:
             # first_key = key-name (action mapping) OR tuple (key-name, scale) (axis mapping)
-            first_key = self.action_space_desc[bytes(a[0], encoding="utf-8")][b"keys"][0]
+            #first_key = self.action_space_desc[bytes(a[0], encoding="utf-8")]["keys"][0]
+            first_key = self.action_space_desc[a[0]]["keys"][0]
             # action mapping
             if isinstance(first_key, (bytes, str)):
                 ret.append((first_key, a[1]))
             # axis mapping
             else:
-                ret.append((first_key[0].decode(), a[1] * first_key[1]))
+                #ret.append((first_key[0].decode(), a[1] * first_key[1]))
+                ret.append((first_key[0], a[1] * first_key[1]))
 
         return ret
 

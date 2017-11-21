@@ -34,15 +34,6 @@ void FE2LObservedPropertyDetails::OnSelectionChanged(TSharedPtr<FE2LPropertyItem
 	SProp->MarkPackageDirty();
 }
 
-void FE2LObservedPropertyDetails::PropRangeMinChanged(float Value)
-{
-	ObservedProperty->RangeMin = Value;
-}
-
-void FE2LObservedPropertyDetails::PropRangeMaxChanged(float Value)
-{
-	ObservedProperty->RangeMax = Value;
-}
 
 void FE2LObservedPropertyDetails::PropCheckChanged(ECheckBoxState CheckBoxState)
 {
@@ -59,18 +50,15 @@ ECheckBoxState FE2LObservedPropertyDetails::GetSelectedPropEnabled() const
 	return ObservedProperty->bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-TOptional<float> FE2LObservedPropertyDetails::GetSelectedPropRangeMin() const
-{
-	return ObservedProperty->RangeMin;
-}
-
-TOptional<float> FE2LObservedPropertyDetails::GetSelectedPropRangeMax() const
-{
-	return ObservedProperty->RangeMax;
-}
 
 bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
+	if (UArrayProperty *PArray = Cast<UArrayProperty>(Prop))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Found array for %s"), *Prop->GetName());
+		return ObservableProp(PArray->Inner);
+	}
+
 	if (Prop->IsA<UBoolProperty>())
 		return true;
 	if (Prop->IsA<UFloatProperty>())
@@ -83,6 +71,7 @@ bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
 		return true;
 	if (Prop->IsA<UEnumProperty>())
 		return true;
+
 	if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
 	{
 		if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
@@ -92,7 +81,9 @@ bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
 			if (SSProp == TBaseStructure<FRotator>::Get())
 				return true;
 		}
+
 	}
+
 	return false;
 }
 
@@ -109,10 +100,21 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	if (!Observer)
 		return;
 
-	UActorComponent *Parent = Observer->GetAttachParent();
+	UObject *Parent = nullptr;
+
+	if (!Observer->bUseActorProperties)
+	{
+		Parent = Observer->GetAttachParent();
+	}
+	else
+	{
+		Parent = Observer->GetOwner();
+	}
+
 	if (!Parent)
 		return;
 
+	
 	SProp = Cast<UStructProperty>(StructPropertyHandle->GetProperty());
 	if (!SProp)
 		return;
@@ -129,6 +131,8 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	ParentProperties.Empty();
 
 	TSharedPtr<FE2LPropertyItem> CurrentItem;
+
+	
 
 	for (TFieldIterator<UProperty> PropIt(Parent->GetClass()); PropIt; ++PropIt)
 	{
@@ -172,26 +176,6 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 			SNew(SCheckBox)
 			.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
 		.OnCheckStateChanged(this, &FE2LObservedPropertyDetails::PropCheckChanged)
-		]
-	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-		[
-			SNew(STextBlock).Text(FText::FromString("Min"))
-		]
-	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-		[
-			SNew(SNumericEntryBox<float>)
-			.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMin)
-		.OnValueChanged(this, &FE2LObservedPropertyDetails::PropRangeMinChanged)
-		]
-	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-		[
-			SNew(STextBlock).Text(FText::FromString("Max"))
-		]
-	+ SHorizontalBox::Slot().Padding(4).AutoWidth()
-		[
-			SNew(SNumericEntryBox<float>)
-			.Value(this, &FE2LObservedPropertyDetails::GetSelectedPropRangeMax)
-		.OnValueChanged(this, &FE2LObservedPropertyDetails::PropRangeMaxChanged)
 		]
 		];
 }
@@ -256,5 +240,8 @@ void UE2LObserver::OnAttachmentChanged()
 	Super::OnAttachmentChanged();
 
 	UE_LOG(LogTemp, Warning, TEXT("Parent changed to %s"), *GetOwner()->GetName());
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyEditorModule.NotifyCustomizationModuleChanged();
 }
 

@@ -26,11 +26,6 @@ struct FE2LObservedProperty
 		bEnabled = true;
 	}
 
-	UPROPERTY(EditAnyWhere)
-	float RangeMin;
-
-	UPROPERTY(EditAnyWhere)
-	float RangeMax;
 };
 
 struct FE2LPropertyItem
@@ -54,11 +49,7 @@ public:
 
 	FText GetSelectedPropName() const;
 	ECheckBoxState GetSelectedPropEnabled() const;
-	TOptional<float> GetSelectedPropRangeMin() const;
-	TOptional<float> GetSelectedPropRangeMax() const;
 
-	void PropRangeMinChanged(float Value);
-	void PropRangeMaxChanged(float Value);
 	void PropCheckChanged(ECheckBoxState CheckBoxState);
 
 protected:
@@ -90,6 +81,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FE2LObservedProperty> ObservedProperties;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseActorProperties;
 
 	UFUNCTION()
 	static TArray<UE2LObserver *> GetRegisteredObservers();

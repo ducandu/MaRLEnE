@@ -200,9 +200,12 @@ Vagrant.configure("2") do |config|
     sudo pip install matplotlib
     sudo pip install pygame
     sudo pip install msgpack-python
+    sudo pip install msgpack-numpy
+    sudo pip install pillow
 
     # get openAI gym (including Atari Envs)
     cd
+    rm -rf gym
     git clone https://github.com/openai/gym.git
     cd gym/
     pip install --user -e .

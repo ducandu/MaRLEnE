@@ -7,7 +7,7 @@
 #include "ISettingsContainer.h"
 #include "PropertyEditorModule.h"
 
-#include "DucanduSettings.h"
+#include "Engine2LearnSettings.h"
 #include "E2LObserver.h"
 
 #define LOCTEXT_NAMESPACE "FEngine2LearnModule"
@@ -21,15 +21,15 @@ void FEngine2LearnModule::StartupModule()
 		// Create the new category
 		ISettingsContainerPtr SettingsContainer = SettingsModule->GetContainer("Project");
 
-		SettingsContainer->DescribeCategory("Ducandu",
-			LOCTEXT("RuntimeWDCategoryName", "Ducandu"),
-			LOCTEXT("RuntimeWDCategoryDescription", "Ducandu Project"));
+		SettingsContainer->DescribeCategory("Engine2Learn",
+			LOCTEXT("RuntimeWDCategoryName", "Engine2Learn"),
+			LOCTEXT("RuntimeWDCategoryDescription", "Engine2Learn Project"));
 
 		// Register the settings
-		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Ducandu", "General",
+		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Engine2Learn", "General",
 			LOCTEXT("RuntimeGeneralSettingsName", "General"),
 			LOCTEXT("RuntimeGeneralSettingsDescription", "General Options"),
-			GetMutableDefault<UDucanduSettings>()
+			GetMutableDefault<UEngine2LearnSettings>()
 		);
 	}
 
@@ -48,7 +48,7 @@ void FEngine2LearnModule::ShutdownModule()
 
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
-		SettingsModule->UnregisterSettings("Project", "Ducandu", "General");
+		SettingsModule->UnregisterSettings("Project", "Engine2Learn", "General");
 	}
 
 	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))

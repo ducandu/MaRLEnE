@@ -69,6 +69,33 @@ TOptional<float> FE2LObservedPropertyDetails::GetSelectedPropRangeMax() const
 	return ObservedProperty->RangeMax;
 }
 
+bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
+{
+	if (Prop->IsA<UBoolProperty>())
+		return true;
+	if (Prop->IsA<UFloatProperty>())
+		return true;
+	if (Prop->IsA<UIntProperty>())
+		return true;
+	if (Prop->IsA<UUInt64Property>())
+		return true;
+	if (Prop->IsA<UInt64Property>())
+		return true;
+	if (Prop->IsA<UEnumProperty>())
+		return true;
+	if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
+	{
+		if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
+		{
+			if (SSProp == TBaseStructure<FVector>::Get())
+				return true;
+			if (SSProp == TBaseStructure<FRotator>::Get())
+				return true;
+		}
+	}
+	return false;
+}
+
 void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
@@ -105,6 +132,10 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 
 	for (TFieldIterator<UProperty> PropIt(Parent->GetClass()); PropIt; ++PropIt)
 	{
+		if (!ObservableProp(*PropIt))
+		{
+			continue;
+		}
 		TSharedPtr<FE2LPropertyItem> PItem = TSharedPtr<FE2LPropertyItem>(new FE2LPropertyItem());
 		PItem->Name = PropIt->GetName();
 		PItem->Object = Parent;
@@ -116,7 +147,10 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 		}
 	}
 
-
+	ParentProperties.Sort([](const TSharedPtr<FE2LPropertyItem>& One, const TSharedPtr<FE2LPropertyItem>& Two)
+	{
+		return One->Name < Two->Name;
+	});
 
 	HeaderRow.NameContent()
 		[

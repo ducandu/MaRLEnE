@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_x11 = true
   config.ssh.forward_agent = true
   # IMPORTANT NOTE on making XWindow work with Vagrant: Remember to trigger reverse port forwarding (from Vagrant to host PC) via:
-  # `vagrant ssh -- -R 6000:localhost:6000` (for display=0:0 -> port that XWindow listens on is 6000)
+  # `vagrant ssh -- -R 6000:localhost:6000 -R 6025:localhost:6025` (for display=0:0 -> port that XWindow listens on is 6000 AND for UE4Env-server (6025))
   # also, the DISPLAY env variable needs to be set
 
   # Disable automatic box update checking. If you disable this, then
@@ -133,6 +133,17 @@ Vagrant.configure("2") do |config|
     # XWindow stuff (set our display running on host (e.g. Win10 PC))
     # 0=port 6000, 1=port 6001, etc..
     echo "export DISPLAY=0:0" >> /home/ubuntu/.bashrc
+
+
+    # 20tab script to setup UE4 service
+    apt-get install dos2unix
+    cd /vagrant
+    chmod 0755 bootstrap-unreal.sh
+    # weird problem with 'bash\M' not found (something wrong with the line endings)
+    dos2unix bootstrap-unreal.sh
+    sudo /vagrant/bootstrap-unreal.sh Engine2Learn
+    cd
+
 
     # git the TensorFlowOnSpark code
     rm -rf TensorFlowOnSpark

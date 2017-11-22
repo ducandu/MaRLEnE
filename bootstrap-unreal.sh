@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-echo "                 
+
+echo "
 [Unit]
 Description=$1 Service
 
@@ -14,3 +15,4 @@ WantedBy=multi-user.target" > $1.service
 mv $1.service /etc/systemd/system/$1.service
 systemctl enable $1.service
 systemctl start $1.service
+

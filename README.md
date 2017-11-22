@@ -27,3 +27,12 @@ pip install engine2learn
 ```
 
 2) 
+
+
+# Unreal
+
+Having your project client compiled in your shared `/vagrant` directory, use `Vagrantfile-Unreal` to start and provision the vagrant environment passing environment parameter, as in example below:
+
+```
+$ VAGRANT_VAGRANTFILE=Vagrantfile-unreal PROJECT_NAME='MyProject' vagrant up
+``` 

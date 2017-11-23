@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 """
 
-from .envs import Env, UE4Env
+from .envs import UE4Env
 
 
 def connect_env(type_="ue4", hostname="localhost", port=2017):
@@ -27,7 +27,7 @@ def connect_env(type_="ue4", hostname="localhost", port=2017):
 
     # for now: the only supported type is ue4
     if type_ == "ue4":
-        return UE4Env(hostname, port)  # what other params are necessary?
+        return UE4Env(port, hostname)  # what other params are necessary?
 
     raise TypeError("type_ has to be 'ue4'!")
 

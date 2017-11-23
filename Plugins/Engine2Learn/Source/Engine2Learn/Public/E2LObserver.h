@@ -90,6 +90,8 @@ public:
 
 	void OnAttachmentChanged() override;
 
+	void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent);
+
 
 protected:
 	// Called when the game starts

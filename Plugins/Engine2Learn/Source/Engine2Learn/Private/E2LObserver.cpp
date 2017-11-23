@@ -114,7 +114,7 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	if (!Parent)
 		return;
 
-	
+
 	SProp = Cast<UStructProperty>(StructPropertyHandle->GetProperty());
 	if (!SProp)
 		return;
@@ -132,7 +132,7 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 
 	TSharedPtr<FE2LPropertyItem> CurrentItem;
 
-	
+
 
 	for (TFieldIterator<UProperty> PropIt(Parent->GetClass()); PropIt; ++PropIt)
 	{
@@ -240,6 +240,10 @@ void UE2LObserver::OnAttachmentChanged()
 	Super::OnAttachmentChanged();
 
 	UE_LOG(LogTemp, Warning, TEXT("Parent changed to %s"), *GetOwner()->GetName());
+}
+
+void UE2LObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
+{
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyEditorModule.NotifyCustomizationModuleChanged();

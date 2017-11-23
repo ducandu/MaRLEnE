@@ -32,10 +32,10 @@ if __name__ == "__main__":
 
     #env.set(setters=("Ledge_test:RenderComponent:bSimulatePhysics", True))
     print("After reset()")
-    num_ticks_per_action = 4 # 3600  # 3600 should cover 1 min in the real game (with 1/60 delta time per tick)
+    num_ticks_per_action = 4  # 3600 should cover 1 min in the real game (with 1/60 delta time per tick)
     #delta_time = 1 / int(60 / num_ticks_per_action)
     delta_time = 1 / 60
-    for i in range(300):
+    for i in range(1800):
         obs_dict = env.step(delta_time=delta_time, num_ticks=num_ticks_per_action,
                             axes=("MoveRight", np.random.choice([-1.0, -1.0, 1.0, 1.0, 0.0])),
                             actions=("Shoot", random.choice([False, False, False, True])))

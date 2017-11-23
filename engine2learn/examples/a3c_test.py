@@ -268,7 +268,7 @@ if __name__ == "__main__":
     # create the spark context object from pyspark
     conf = SparkConf().setMaster("spark://ubuntu-xenial:7077").setAppName("A3C_test").\
         setSparkHome("/home/ubuntu/spark-2.2.0-bin-hadoop2.7")  # TODO: fix this environment variable mess
-    spark_context = SparkContext(conf=conf)
+    sc = SparkContext(conf=conf)
 
     # specify the cluster specs
     num_executors = conf.get("spark.executor.instances", 5)
@@ -276,5 +276,5 @@ if __name__ == "__main__":
 
     # question: run samplers already here?
 
-    cluster = TFCluster.run(spark_context, main_fun, args, num_executors, num_ps, args.tensorboard, TFCluster.InputMode.TENSORFLOW)
+    cluster = TFCluster.run(sc, main_fun, args, num_executors, num_ps, args.tensorboard, TFCluster.InputMode.TENSORFLOW)
     cluster.shutdown()

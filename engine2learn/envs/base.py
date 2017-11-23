@@ -38,6 +38,14 @@ class Env(object):
         # try to keep only one copy ever of this dict and do all conversions/updates in place
         self.obs_dict = {}
 
+    def seed(self, seed=None):
+        """
+        Sets the random seed of the environment to the given value (current time if None).
+
+        :param int seed: The seed to use (current epoch seconds if None)
+        """
+        raise NotImplementedError
+
     def step(self, **kwargs):
         """
         Run one time step of the environment's dynamics. When the end of an episode is reached, reset() should be called to reset the environment's

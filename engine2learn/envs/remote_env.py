@@ -18,6 +18,7 @@ import msgpack
 import msgpack_numpy as mnp
 import errno
 import os
+from time import time
 
 
 class RemoteEnv(Env):
@@ -66,7 +67,11 @@ class RemoteEnv(Env):
         unpacker = msgpack.Unpacker()
 
         # wait for an immediate response
-        orig_len = int(self.socket.recv(8))
+        response = self.socket.recv(8)
+        if response == b"":
+            raise RuntimeError("No data received by socket socket.recv in call to method `recv` (connection to {}:{} possibly closed)!".
+                               format(self.host, self.port))
+        orig_len = int(response)
         recvd_len = 0
         #print("total_len={} sum={}".format(total_len, sum_))
         while True:
@@ -94,6 +99,18 @@ class RemoteEnv(Env):
             else:
                 raise RuntimeError("Message without field 'status' received!")
         raise RuntimeError("No message encoded in data stream (data stream had len={})")
+
+    def seed(self, seed=None):
+        if seed is None:
+            seed = int(time())
+        # send command
+        self.send({"cmd": "seed", "value": seed})
+        # wait for response
+        response = self.recv()
+        if "status" not in response:
+            raise RuntimeError("Message without field 'status' received!")
+        elif response["status"] != "ok":
+            raise RuntimeError("Message 'status' for seed command is not 'ok' ({})!".format(response["status"]))
 
     def reset(self):
         """

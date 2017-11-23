@@ -66,6 +66,22 @@ def get_child_component(component, component_class):
     return None
 
 
+def seed(message):
+    """
+    Sets the random seed of the Game to some int value.
+    """
+    if "value" not in message:
+        return {"status": "error", "message": "Field 'value' missing in 'seed' command message!"}
+    elif not isinstance(message["value"], (int, float)):
+        return {"status": "error", "message": "Field 'value' ({}) in 'seed' command is not of type int!".format(message["value"])}
+
+    # set the random seed through the UnrealEnginePython interface
+    value = int(message["value"])
+    ue.set_random_seed(value)
+
+    return {"status": "ok", "new_seed": value}
+
+
 def reset(message):
     """
     Resets the Game to its default start position and returns the resulting obs_dict.
@@ -88,9 +104,7 @@ def reset(message):
     if not success:
         ue.log("->WARNING: Game could not be paused after reset!")
 
-    o = compile_obs_dict()
-    ue.log("-> sending back status ok and obs_dict {}.".format(o))
-    return {"status": "ok", "obs_dict": o}
+    return compile_obs_dict()
 
 
 def set_props(message):
@@ -113,7 +127,7 @@ def set_props(message):
         return {"status": "error", "message": "No playing world!"}
 
     if "setters" not in message:
-        return {"status" : "error", "message": "Field 'setters' missing in 'set' command message!"}
+        return {"status": "error", "message": "Field 'setters' missing in 'set' command message!"}
 
     actors = {}  # dict of uobjects: key=name (w/o number extension), value: list of actors that share this key (name)
     for a in playing_world.all_actors():
@@ -171,7 +185,7 @@ def set_props(message):
                             uobj.set_property(next_, value)
                 break
 
-    return {"status": "ok", "obs_dict": compile_obs_dict()}
+    return compile_obs_dict()
 
 
 """    processing_dict = {"_playing_world": {"uobj": [playing_world], "is_final": False}}
@@ -285,33 +299,50 @@ def step(message):
     ue.log("step command: delta_time={} num_ticks={}".format(delta_time, num_ticks))
 
     # DEBUG
-    pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
     # END: DEBUG
 
-    # unpause the game and then perform n ticks with the given inputs (actions and axes)
-    #GameplayStatics.SetGamePaused(playing_world, True)
-    was_unpaused = GameplayStatics.SetGamePaused(playing_world, False)
-    if not was_unpaused:
-        ue.log("WARNING: un-pausing game for next step was not successful!")
-    for _ in range(num_ticks):
-        #controller.input_axis(Key(KeyName="Right"), -1.0, delta_time)
-        if "axes" in message:
-            for axis in message["axes"]:
-                key_name = axis[0]
-                ue.log("-> axis {}={} (key={})".format(key_name, axis[1], Key(KeyName=key_name)))
-                controller.input_axis(Key(KeyName=key_name), axis[1], delta_time)
-        if "actions" in message:
-            for action in message["actions"]:
-                action_name = action[0]
-                ue.log("-> action {}={}".format(action_name, action[1]))
-                controller.input_key(Key(KeyName=action_name), EInputEvent.IE_Pressed if action[1] else EInputEvent.IE_Released)
-        playing_world.world_tick(delta_time)
-    # pause again
-    was_paused = GameplayStatics.SetGamePaused(playing_world, True)
-    if not was_paused:
-        ue.log("->WARNING: re-pausing game after step was not successful!")
+    if "axes" in message:
+        for axis in message["axes"]:
+            key_name = axis[0]
+            ue.log("-> axis {}={} (key={})".format(key_name, axis[1], Key(KeyName=key_name)))
+            controller.input_axis(Key(KeyName=key_name), axis[1], delta_time)
+    if "actions" in message:
+        for action in message["actions"]:
+            action_name = action[0]
+            ue.log("-> action {}={}".format(action_name, action[1]))
+            controller.input_key(Key(KeyName=action_name), EInputEvent.IE_Pressed if action[1] else EInputEvent.IE_Released)
 
-    return {"status": "ok", "obs_dict": compile_obs_dict()}
+    # unpause the game and then perform n ticks with the given inputs (actions and axes)
+    for _ in range(num_ticks):
+        was_unpaused = GameplayStatics.SetGamePaused(playing_world, False)
+        if not was_unpaused:
+            ue.log("WARNING: un-pausing game for next step was not successful!")
+
+        playing_world.world_tick(delta_time, True)
+
+        # pause again
+        was_paused = GameplayStatics.SetGamePaused(playing_world, True)
+        if not was_paused:
+            ue.log("->WARNING: re-pausing game after step was not successful!")
+    return compile_obs_dict()
+
+
+def sanity_check_observer(observer, playing_world):
+    obs_name = observer.get_name()
+    # the observer cold be destroyed
+    if not observer.is_valid():
+        ue.log("Observer {} not valid".format(obs_name))
+        return None, None
+    if not observer.has_world():
+        ue.log("Observer {} has no world".format(obs_name))
+        return None, None
+    # observer lives in another world
+    if playing_world is not None and observer.get_world() != playing_world:
+        ue.log("Observer {} lives in non-live world ({}) (playing-world={})".format(obs_name, observer.get_world(), playing_world))
+        return None, None
+    # get the observer's parent and name
+    return observer.GetAttachParent(), obs_name
 
 
 def compile_obs_dict():
@@ -321,16 +352,7 @@ def compile_obs_dict():
     playing_world = get_playing_world()
 
     for observer in E2LObserver.GetRegisteredObservers():
-        # the observer cold be destroyed
-        if not observer.is_valid():
-            continue
-        if not observer.has_world():
-            continue
-        # observer lives in another world
-        if observer.get_world() != playing_world:
-            continue
-        # make sure this observer is attached so some parent Actor/Component
-        parent = observer.GetAttachParent()
+        parent, obs_name = sanity_check_observer(observer, playing_world)
         if not parent:
             continue
 
@@ -343,8 +365,8 @@ def compile_obs_dict():
             if parent.is_a(SceneCaptureComponent2D):
                 texture = parent.TextureTarget
                 if not texture:
-                    return {"status": "error", "message": "SceneCapture2DComponent (parent of Observer {}) does not have a TextureTarget " +
-                                                          "(call `get_spec` first on the UE4Env)!".format(obs_name)
+                    return {"status": "error", "message": "SceneCapture2DComponent (parent of Observer {}) does not have a TextureTarget ".format(obs_name) +
+                                                          "(call `get_spec` first on the UE4Env)!"
                             }
                 parent.CaptureScene()  # trigger scene capture
             elif parent.is_a(CameraComponent):
@@ -353,15 +375,15 @@ def compile_obs_dict():
                     texture = scene_capture.TextureTarget
                     scene_capture.CaptureScene()
                 else:
-                    return {"status": "error", "message": "CameraComponent (parent of Observer {}) does not have a SceneCapture2DComponent "+
-                                                          "(call `get_spec` first on the UE4Env)!".format(obs_name)
+                    return {"status": "error", "message": "CameraComponent (parent of Observer {}) does not have a SceneCapture2DComponent ".format(obs_name) +
+                                                          "(call `get_spec` first on the UE4Env)!"
                             }
             else:
                 return {"status": "error",
                         "message": "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture2D!".format(obs_name)}
 
             # TODO: copy the bytes into the same memory location each time to avoid garbage collection
-            byte_string = bytes(texture.render_target_get_data())
+            byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data, [mipmap]?) instead
             np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
             img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]
 
@@ -373,7 +395,7 @@ def compile_obs_dict():
             if not parent.has_property(observed_prop.PropName):
                 continue
             _OBS_DICT[obs_name+":"+observed_prop.PropName] = str(parent.get_property(observed_prop.PropName))
-    return _OBS_DICT
+    return {"status": "ok", "obs_dict": _OBS_DICT}
 
 
 def get_spec():
@@ -404,17 +426,10 @@ def get_spec():
     # build the observation_space descriptor
     observation_space_desc = {}
     for observer in E2LObserver.GetRegisteredObservers():
-        if not observer.has_world():
-            continue
-        # observer lives in another world
-        if playing_world is not None and observer.get_world() != playing_world:
-            continue
-        # make sure this observer is attached so some parent Actor/Component
-        parent = observer.GetAttachParent()
+        parent, obs_name = sanity_check_observer(observer, playing_world)
         if not parent:
             continue
 
-        obs_name = observer.get_name()
         ue.log("DEBUG: get_spec observer {}".format(obs_name))
 
         # this observer returns a camera image
@@ -443,7 +458,6 @@ def get_spec():
                 return {"status": "error", "message":
                         "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture!".format(obs_name)}
 
-            #OBSOLETE? TRY w/o min/max: observation_space_desc[name+":camera"] = {"type": "image_rgb", "mins": 0, "maxs": 255, "shape": (texture.SizeX, texture.SizeY, 3)}
             observation_space_desc[obs_name+":camera"] = {"type": "cam", "shape": (texture.SizeX, texture.SizeY, 3)}  # 1=int
 
         # go through non-capture properties that need to be observed by this Observer

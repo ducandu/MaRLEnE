@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_x11 = true
   config.ssh.forward_agent = true
   # IMPORTANT NOTE on making XWindow work with Vagrant: Remember to trigger reverse port forwarding (from Vagrant to host PC) via:
-  # `vagrant ssh -- -R 6000:localhost:6000` (for display=0:0 -> port that XWindow listens on is 6000)
+  # `vagrant ssh -- -R 6000:localhost:6000 -R 6025:localhost:6025` (for display=0:0 -> port that XWindow listens on is 6000 AND for UE4Env-server (6025))
   # also, the DISPLAY env variable needs to be set
 
   # Disable automatic box update checking. If you disable this, then
@@ -41,7 +41,7 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 7077, host: 7077, host_ip: "127.0.0.1"	# Spark Master port
   config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"	# Spark MasterWebUI port
   #OLD: PyCharm debug server
-  #config.vm.network "forwarded_port", guest: 20022, host: 20022, host_ip: "127.0.0.1"	# PyCharm debug server
+  #config.vm.network "forwarded_port", guest: 20023, host: 20023, host_ip: "127.0.0.1"	# PyCharm debug server
   # Jupyter Notebook
   config.vm.network "forwarded_port", guest: 8888, host: 8099, host_ip: "127.0.0.1"
   #config.vm.network "forwarded_port", guest: 4040, host: 4040, host_ip: "127.0.0.1" # Zeppelin's Apache Spark Driver GUI
@@ -134,6 +134,17 @@ Vagrant.configure("2") do |config|
     # 0=port 6000, 1=port 6001, etc..
     echo "export DISPLAY=0:0" >> /home/ubuntu/.bashrc
 
+
+    # 20tab script to setup UE4 service
+    apt-get install dos2unix
+    cd /vagrant
+    chmod 0755 bootstrap-unreal.sh
+    # weird problem with 'bash\\M' not found (something wrong with the line endings)
+    dos2unix bootstrap-unreal.sh
+    sudo /vagrant/bootstrap-unreal.sh Engine2Learn
+    cd
+
+
     # git the TensorFlowOnSpark code
     rm -rf TensorFlowOnSpark
     git clone https://github.com/yahoo/TensorFlowOnSpark.git
@@ -146,6 +157,22 @@ Vagrant.configure("2") do |config|
     sudo apt-get --yes install openjdk-8-jre-headless
     # store installation path: usually something like: /usr/lib/jvm/java-8-openjdk-amd64/
     echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/" >> /home/ubuntu/.bashrc
+
+    # Get and install Hadoop
+    cd ~ubuntu
+    wget --no-verbose http://apache.osuosl.org/hadoop/common/hadoop-2.8.2/hadoop-2.8.2.tar.gz
+    mkdir hadoop
+    tar -xvf hadoop-2.8.2.tar.gz -C hadoop --strip-components=1
+    echo "export HADOOP_HOME=$(pwd)/hadoop" >> /home/ubuntu/.bashrc
+    export HADOOP_HOME=$(pwd)/hadoop
+    echo "export PATH=$PATH:$HADOOP_HOME/bin" >> /home/ubuntu/.bashrc
+    export PATH=$PATH:$HADOOP_HOME/bin
+    echo "export HADOOP_CLASSPATH=$(hadoop classpath)" >> /home/ubuntu/.bashrc
+    export HADOOP_CLASSPATH=$(hadoop classpath)
+    echo "export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop" >> /home/ubuntu/.bashrc
+    export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+    # Give to ubuntu
+    sudo chown -R ubuntu:ubuntu /home/ubuntu/hadoop
 
     # Get Spark and Install
     # replace with a current version of spark

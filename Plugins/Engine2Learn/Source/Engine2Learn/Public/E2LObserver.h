@@ -91,7 +91,7 @@ public:
 	void OnAttachmentChanged() override;
 
 	void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent);
-
+	void OnComponentDestroyed(bool bDestroyingHierarchy);
 
 protected:
 	// Called when the game starts

@@ -235,6 +235,12 @@ void UE2LObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	// ...
 }
 
+void UE2LObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DESTROYING DESTROYED E2L"));
+	E2LObserversManager::UnregisterObserver(this);
+}
+
 void UE2LObserver::OnAttachmentChanged()
 {
 	Super::OnAttachmentChanged();

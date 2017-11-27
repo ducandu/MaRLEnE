@@ -55,7 +55,6 @@ bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
 	if (UArrayProperty *PArray = Cast<UArrayProperty>(Prop))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Found array for %s"), *Prop->GetName());
 		return ObservableProp(PArray->Inner);
 	}
 
@@ -237,7 +236,6 @@ void UE2LObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 void UE2LObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	UE_LOG(LogTemp, Warning, TEXT("DESTROYING DESTROYED E2L"));
 	E2LObserversManager::UnregisterObserver(this);
 }
 
@@ -245,7 +243,11 @@ void UE2LObserver::OnAttachmentChanged()
 {
 	Super::OnAttachmentChanged();
 
-	UE_LOG(LogTemp, Warning, TEXT("Parent changed to %s"), *GetOwner()->GetName());
+	USceneComponent *Parent = GetAttachParent();
+	if (Parent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Parent changed to %s"), *Parent->GetName());
+	}
 }
 
 void UE2LObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)

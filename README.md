@@ -83,4 +83,5 @@ Having your project client compiled in your shared `/vagrant` directory, use `Va
 
 ```
 $ VAGRANT_VAGRANTFILE=Vagrantfile-unreal PROJECT_NAME='MyProject' vagrant up
+$ VAGRANT_VAGRANTFILE=Vagrantfile-builder PROJECT_URL='https://github.com/20tab/UnrealEnginePython.git' PROJECT_NAME='UnrealEnginePython' vagrant up
 ``` 

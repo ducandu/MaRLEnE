@@ -7,6 +7,7 @@ ENV["LC_ALL"] = "en_US.UTF-8"
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
   config.vm.provider "virtualbox" do |vb|
+    vb.name = "engine2learn-" + ENV["PROJECT_NAME"].downcase.strip.gsub(' ', '-').gsub(/[^\w-]/, '')
     vb.memory = 2048
     vb.cpus = 1
   end

@@ -22,7 +22,7 @@ from time import time
 
 
 class RemoteEnv(Env):
-    def __init__(self, port=6025, host="localhost"):
+    def __init__(self, host="localhost", port=6025):
         """
         A remote Environment that one can connect to through tcp.
         Implements a simple msgpack protocol to get the step/reset/etc.. commands to the remote server and simply waits (blocks) for a response.
@@ -63,31 +63,25 @@ class RemoteEnv(Env):
         self.socket.send(msgpack.packb(message))
     
     def recv(self):
-        # unpacker = msgpack.Unpacker(encoding="ascii")
         unpacker = msgpack.Unpacker()
 
         # wait for an immediate response
         response = self.socket.recv(8)
         if response == b"":
-            raise RuntimeError("No data received by socket socket.recv in call to method `recv` (connection to {}:{} possibly closed)!".
+            raise RuntimeError("No data received by socket socket.recv in call to method `recv` (listener on {}:{} possibly closed)!".
                                format(self.host, self.port))
         orig_len = int(response)
-        recvd_len = 0
-        #print("total_len={} sum={}".format(total_len, sum_))
+        received_len = 0
         while True:
-            data = self.socket.recv(orig_len - recvd_len)
-            #print("data recv'd: len={}".format(len(data)))
+            data = self.socket.recv(orig_len - received_len)
             if not data:  # there must be a response
-                raise RuntimeError("No data of len {} received by socket.recv in call to method `recv`!".format(orig_len - recvd_len))
+                raise RuntimeError("No data of len {} received by socket.recv in call to method `recv`!".format(orig_len - received_len))
             data_len = len(data)
-            recvd_len += data_len
-            #print("now sum={}".format(sum_))
+            received_len += data_len
             unpacker.feed(data)
 
-            if recvd_len == orig_len:
+            if received_len == orig_len:
                 break
-            #total_len -= data_len
-            #print("now total_len={}".format(total_len))
 
         # get the data
         for message in unpacker:

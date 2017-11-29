@@ -134,7 +134,6 @@ Vagrant.configure("2") do |config|
     # 0=port 6000, 1=port 6001, etc..
     echo "export DISPLAY=0:0" >> /home/ubuntu/.bashrc
 
-
     # 20tab script to setup UE4 service
     apt-get install dos2unix
     cd /vagrant
@@ -144,14 +143,14 @@ Vagrant.configure("2") do |config|
     sudo /vagrant/bootstrap-unreal.sh Engine2Learn
     cd
 
-
     # git the TensorFlowOnSpark code
+    cd
     rm -rf TensorFlowOnSpark
     git clone https://github.com/yahoo/TensorFlowOnSpark.git
-    pushd TensorFlowOnSpark
+    cd TensorFlowOnSpark
     echo "export TFoS_HOME="$(pwd) >> /home/ubuntu/.bashrc
     export TFoS_HOME=$(pwd)
-    popd
+    cd
 
     # Get Java
     sudo apt-get --yes install openjdk-8-jre-headless

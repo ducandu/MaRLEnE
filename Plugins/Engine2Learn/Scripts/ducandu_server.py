@@ -51,6 +51,10 @@ def get_playing_world():
     Returns the first world within all worlds that is either a Game OR and PIE (play in editor) world.
     :rtype: UnrealEnginePython UWorld
     """
+    # DEBUG
+    #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    # END: DEBUG
+
     playing_world = None
     for world in ue.all_worlds():
         if world.get_world_type() in (1, 3):  # game or pie
@@ -99,7 +103,7 @@ def reset(message):
     ue.log("->is paused={}".format(is_paused))
     if is_paused:
         GameplayStatics.SetGamePaused(playing_world, False)
-        playing_world.world_tick(1/600.0)  # mini tick?
+        playing_world.world_tick(1/600.0, True)  # mini tick?
     success = GameplayStatics.SetGamePaused(playing_world, True)
     if not success:
         ue.log("->WARNING: Game could not be paused after reset!")
@@ -375,7 +379,7 @@ def compile_obs_dict():
                     texture = scene_capture.TextureTarget
                     scene_capture.CaptureScene()
                 else:
-                    return {"status": "error", "message": "CameraComponent (parent of Observer {}) does not have a SceneCapture2DComponent ".format(obs_name) +
+                    return {"status": "error", "message": "CameraComponent (parent of '{}') does not have a SceneCapture2DComponent ".format(obs_name) +
                                                           "(call `get_spec` first on the UE4Env)!"
                             }
             else:
@@ -392,9 +396,22 @@ def compile_obs_dict():
         for observed_prop in observer.ObservedProperties:
             if not observed_prop.bEnabled:
                 continue
-            if not parent.has_property(observed_prop.PropName):
+            prop_name = observed_prop.PropName
+            if not parent.has_property(prop_name):
                 continue
-            _OBS_DICT[obs_name+":"+observed_prop.PropName] = str(parent.get_property(observed_prop.PropName))
+
+            prop = parent.get_property(prop_name)
+            type_ = type(prop)
+            if type_ == ue.FVector or type_ == ue.FRotator:
+                value = (prop[0], prop[1], prop[2])
+            elif type_ == ue.UObject:
+                value = str(prop)
+            elif type_ == bool or type_ == int or type_ == float:
+                value = prop
+            else:
+                return {"status": "error", "message": "Observed property {} has an unsupported type ({})".format(prop_name, type_)}
+
+            _OBS_DICT[obs_name+":"+prop_name] = value
     return {"status": "ok", "obs_dict": _OBS_DICT}
 
 
@@ -423,6 +440,10 @@ def get_spec():
             action_space_desc[axis.AxisName]["keys"].append((axis.Key.KeyName, axis.Scale))
     ue.log("action_space_desc: {}".format(action_space_desc))
 
+    # DEBUG
+    #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    # END: DEBUG
+
     # build the observation_space descriptor
     observation_space_desc = {}
     for observer in E2LObserver.GetRegisteredObservers():
@@ -438,13 +459,16 @@ def get_spec():
                 texture = parent.TextureTarget
                 if not texture:
                     # todo pass texture size and format
-                    ue.log("DEBUG: no texture A texture={}".format(texture))
                     texture = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
                     parent.TextureTarget = texture
+                    ue.log("DEBUG: no texture A texture={}".format(texture))
             elif parent.is_a(CameraComponent):
                 scene_capture = get_child_component(parent, SceneCaptureComponent2D)
                 if scene_capture:
                     texture = scene_capture.TextureTarget
+                    if not texture:
+                        ue.log("DEBUG: scene capture is already there but w/o texture D -> creating one")
+                        texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
                     ue.log("DEBUG: scene capture is already there B texture={}".format(texture))
                 # if it is a CameraComponent without SceneCaptureComponent2D -> generate one dynamically
                 else:
@@ -452,26 +476,39 @@ def get_spec():
                     scene_capture.bCaptureEveryFrame = False
                     scene_capture.bCaptureOnMovement = False
                     texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
-                    ue.log("DEBUG: scene capture is created C texture={}".format(texture))
+                    ue.log("DEBUG: scene capture is created C texture={}".format(scene_capture.TextureTarget))
                     # TODO: setup camera transform and options
             else:
                 return {"status": "error", "message":
                         "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture!".format(obs_name)}
 
-            observation_space_desc[obs_name+":camera"] = {"type": "cam", "shape": (texture.SizeX, texture.SizeY, 3)}  # 1=int
+            ue.log("DEBUG: scene capture's render target is now={}".format(texture))
+            observation_space_desc[obs_name+":camera"] = {"type": "IntBox", "shape": (texture.SizeX, texture.SizeY, 3), "min": 0, "max": 255}
 
-        # go through non-capture properties that need to be observed by this Observer
+        # go through non-camera/capture properties that need to be observed by this Observer
         for observed_prop in observer.ObservedProperties:
             if not observed_prop.bEnabled:
                 continue
-            if not parent.has_property(observed_prop.PropName):
+            prop_name = observed_prop.PropName
+            if not parent.has_property(prop_name):
                 continue
 
-            #OBSOLETE? TRY w/o min/max: observation_space_desc[name+":"+observed_prop.PropName] = {"type": 0, "min": observed_prop.RangeMin, "max": observed_prop.RangeMax}
+            type_ = type(parent.get_property(prop_name))
+            if type_ == ue.FVector or type_ == ue.FRotator:
+                desc = {"type": "Continuous", "shape": (3,)}  # no min/max -> will be derived from samples
+            elif type_ == ue.UObject:
+                desc = {"type": "str"}
+            elif type_ == bool:
+                desc = {"type": "Bool"}
+            elif type_ == float:
+                desc = {"type": "Continuous", "shape": (1,)}
+            elif type_ == int:
+                desc = {"type": "IntBox", "shape": (1,)}
+            else:
+                return {"status": "error", "message": "Observed property {} has an unsupported type ({})".format(prop_name, type_)}
 
-            #PUT THIS BACK->observation_space_desc[obs_name+":"+observed_prop.PropName] = {"type": observed_prop.DataType, "shape": (observed_prop.Count,)}  # TODO: store type and shape somewhere in C++ code
-            #JUST A TEST
-            observation_space_desc[obs_name+":"+observed_prop.PropName] = {"type": "bool"}  # for now -> just allow booleans
+            observation_space_desc[obs_name+":"+prop_name] = desc
+
     ue.log("observation_space_desc: {}".format(observation_space_desc))
 
     return {"status": "ok", "action_space_desc": action_space_desc, "observation_space_desc": observation_space_desc}
@@ -494,6 +531,8 @@ def manage_message(message):
         return step(message)
     elif cmd == "reset":
         return reset(message)
+    elif cmd == "seed":
+        return seed(message)
     elif cmd == "set":
         return set_props(message)
     elif cmd == "get_spec":

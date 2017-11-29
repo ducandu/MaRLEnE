@@ -24,7 +24,7 @@ class UE4Env(RemoteEnv, StateSettableEnv):
     Communicates with the remote to receive information on the definitions of action- and observation spaces.
     """
     def __init__(self, port=6025, host="localhost", **kwargs):
-        RemoteEnv.__init__(self, port, host)
+        RemoteEnv.__init__(self, host, port)
 
         # TODO: remove **kwargs (unless needed for other params)
         # TODO: 20tab: get the action mappings, axis mappings, observation properties, observation cameras from the remote and leave the rest of this c'tor as is
@@ -84,7 +84,16 @@ class UE4Env(RemoteEnv, StateSettableEnv):
             raise RuntimeError("Message without field 'obs_dict' received!")
         return response["obs_dict"]
 
-    def step(self, delta_time=1/60, num_ticks=4, actions=None, axes=None, **kwargs):
+    def step(self, delta_time=1/60, num_ticks=4, actions=None, axes=None, accumulate_observations=False, **kwargs):
+        """
+        :param float delta_time:
+        :param int num_ticks:
+        :param Union[List[tuple],tuple} actions: A list of tuples of the shape: ([action-name], [True|False])
+        :param Union[List[tuple],tuple} axes: A list of tuples of the shape: ([axis-name], [float-value])
+        :param bool accumulate_observations: Whether to accumulate observations into a
+        :return: The observation dict after the step has been completed.
+        :rtype: dict
+        """
         #assert 1/600 <= delta_time < 1  # make sure our deltas are in some reasonable range
         #assert 1 <= num_ticks <= 20  # same for num_ticks
         # re-translate incoming action names into keyboard keys for the server
@@ -116,16 +125,16 @@ class UE4Env(RemoteEnv, StateSettableEnv):
                 type_ = desc["type"]
                 space = None
 
-                if type_ == "bool":
+                if type_ == "Bool":
                     space = spaces.Bool()
-                elif type_ == "int":
-                    space = spaces.IntBox(None, None, shape=() if desc["len"] == 1 else (desc["len"],))
-                elif type_ == "float":
-                    space = spaces.Continuous(None, None, shape=() if desc["len"] == 1 else (desc["len"],))
-                elif type_ == "enum":
-                    space = spaces.Discrete(desc["len"])
-                elif type_ == "cam":
-                    space = spaces.IntBox(0, 255, shape=desc["shape"])
+                elif type_ == "IntBox":
+                    space = spaces.IntBox(desc.get("min", None), desc.get("max", None), shape=desc.get("shape", ()))
+                elif type_ == "Continuous":
+                    space = spaces.Continuous(desc.get("min", None), desc.get("max", None), shape=desc.get("shape", ()))
+                #elif type_ == "enum":
+                #    space = spaces.Discrete(desc["len"])
+                #elif type_ == "cam":
+                #    space = spaces.IntBox(0, 255, shape=desc["shape"])
 
                 observation_space[key] = space
 

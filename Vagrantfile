@@ -144,13 +144,15 @@ Vagrant.configure("2") do |config|
     cd
 
     # git the TensorFlowOnSpark code
-    cd
+    cd ~ubuntu
     rm -rf TensorFlowOnSpark
     git clone https://github.com/yahoo/TensorFlowOnSpark.git
     cd TensorFlowOnSpark
     echo "export TFoS_HOME="$(pwd) >> /home/ubuntu/.bashrc
     export TFoS_HOME=$(pwd)
     cd
+    # give to ubuntu
+    sudo chown -R ubuntu:ubuntu /home/ubuntu/TensorFlowOnSpark
 
     # Get Java
     sudo apt-get --yes install openjdk-8-jre-headless
@@ -184,6 +186,8 @@ Vagrant.configure("2") do |config|
     export SPARK_HOME=$(pwd)/spark-2.2.0-bin-hadoop2.7
     echo "export PATH=${SPARK_HOME}/bin:${PATH}" >> /home/ubuntu/.bashrc
     export PATH=${SPARK_HOME}/bin:${PATH}
+    # give to ubuntu
+    sudo chown -R ubuntu:ubuntu ${SPARK_HOME}
 
     # get Hadoop and install
     #cd
@@ -228,18 +232,21 @@ Vagrant.configure("2") do |config|
     sudo pip install msgpack-python
     sudo pip install msgpack-numpy
     sudo pip install pillow
+    sudo pip install gym
+    sudo pip install gym[atari]
 
-    # get openAI gym (including Atari Envs)
-    cd
-    rm -rf gym
-    git clone https://github.com/openai/gym.git
-    cd gym/
-    pip install --user -e .
-    pip install --user -e '.[atari]'
-    cd
-
-    ## get the Arcade Learning Env
+    ## get openAI gym (including Atari Envs)
+    #cd ~ubuntu
+    #rm -rf gym
+    #git clone https://github.com/openai/gym.git
+    #cd gym/
+    #sudo pip install --user -e .
+    #sudo pip install --user -e '.[atari]'
+    ## Give to ubuntu
+    #sudo chown -R ubuntu:ubuntu /home/ubuntu/gym
     #cd
+    ## get the Arcade Learning Env
+    #cd ~ubuntu
     #git clone https://github.com/mgbellemare/Arcade-Learning-Environment.git
     ## install its dependencies
     #sudo apt-get install -y libsdl1.2-dev libsdl-gfx1.2-dev libsdl-image1.2-dev cmake
@@ -259,7 +266,6 @@ Vagrant.configure("2") do |config|
 
     # Start Spark (master + n slaves)
     pushd ${SPARK_HOME}
-    sudo chown -R ubuntu:ubuntu ${SPARK_HOME}
     cp conf/spark-defaults.conf.template conf/spark-defaults.conf
     cp conf/spark-env.sh.template conf/spark-env.sh
     echo "SPARK_WORKER_INSTANCES=3" >> conf/spark-env.sh

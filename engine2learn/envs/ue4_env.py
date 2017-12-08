@@ -23,23 +23,12 @@ class UE4Env(RemoteEnv, StateSettableEnv):
     A special RemoteEnv for UE4 game connections.
     Communicates with the remote to receive information on the definitions of action- and observation spaces.
     """
-    def __init__(self, port=6025, host="localhost", **kwargs):
+    def __init__(self, host="localhost", port=6025, **kwargs):
         RemoteEnv.__init__(self, host, port)
 
         # TODO: remove **kwargs (unless needed for other params)
-        # TODO: 20tab: get the action mappings, axis mappings, observation properties, observation cameras from the remote and leave the rest of this c'tor as is
-
-        # list: ["Fire", "Jump", etc..] -> we don't care about the keys associated with this mapping on the UE4 side
-        # all action mappings are translated to Discrete(2) (only true or false are valid values)
-        self.action_space_desc = None  # kwargs.get("action_mappings")
-        # dict: {"MoveForward": (-1.0, 1.0), "Mouse_X": (0.0, 1024.0)}  <-- always lower and upper bound
-        # self.axis_mappings = None  # kwargs.get("axis_mappings")
-
-        # dict: {"Character/Location/x": (-1000, 1000), "Character/Enable Gravity": bool, etc..}
-        self.observation_space_desc = None  # kwargs.get("observation_properties")
-
-        # dict: {"Cam1": (w, h, depth), "cam2": (w, h)}  # <- no depth in cam2 means grey-scale; all pixel values are between 0 and 255
-        # self.observation_cameras = None  # kwargs.get("observation_cameras")
+        self.action_space_desc = None
+        self.observation_space_desc = None
 
     def connect(self):
         RemoteEnv.connect(self)
@@ -47,6 +36,9 @@ class UE4Env(RemoteEnv, StateSettableEnv):
         # get specs from our remote
         self.send({"cmd": "get_spec"})
         response = self.recv()
+
+        assert "observation_space_desc" in response and "action_space_desc" in response,\
+            "ERROR in UE4Env.connect: no observation- or action-space-desc sent by remote server!"
 
         # observers
         self.observation_space_desc = response["observation_space_desc"]
@@ -131,10 +123,9 @@ class UE4Env(RemoteEnv, StateSettableEnv):
                     space = spaces.IntBox(desc.get("min", None), desc.get("max", None), shape=desc.get("shape", ()))
                 elif type_ == "Continuous":
                     space = spaces.Continuous(desc.get("min", None), desc.get("max", None), shape=desc.get("shape", ()))
+                # TODO: Enums
                 #elif type_ == "enum":
                 #    space = spaces.Discrete(desc["len"])
-                #elif type_ == "cam":
-                #    space = spaces.IntBox(0, 255, shape=desc["shape"])
 
                 observation_space[key] = space
 

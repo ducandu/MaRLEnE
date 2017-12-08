@@ -91,7 +91,7 @@ class Model(object):
         """
         Adds outputs (as tf.Tensor/Operation or as a dict with "name" and "list" fields (=list of Tensors/Operations)) to this Module.
 
-        :param list outputs: The list of output tf.Tensors (that are already created!). The name under which these outputs are stored
+        :param Union[list,tuple] outputs: The list of output tf.Tensors (that are already created!). The name under which these outputs are stored
         in our dict are derived from the Tensor's name (without the ":..." part)
         """
         for output in outputs:

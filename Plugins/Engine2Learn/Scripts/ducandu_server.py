@@ -70,6 +70,26 @@ def get_child_component(component, component_class):
     return None
 
 
+async def pause_game():
+    """
+    Pauses the game.
+    """
+    playing_world = get_playing_world()
+    if not playing_world:
+        return {"status": "error", "message": "No playing world!"}
+
+    # check whether game is already paused
+    is_paused = GameplayStatics.IsGamePaused(playing_world)
+    ue.log("pausing the game (is paused={})".format(is_paused))
+    #if is_paused:
+    #    GameplayStatics.SetGamePaused(playing_world, False)
+    #    #playing_world.world_tick(1/600.0, True)  # mini tick?
+    if not is_paused:
+        success = GameplayStatics.SetGamePaused(playing_world, True)
+        if not success:
+            ue.log("->WARNING: Game could not be paused!")
+
+
 def seed(message):
     """
     Sets the random seed of the Game to some int value.
@@ -94,19 +114,12 @@ def reset(message):
     if not playing_world:
         return {"status": "error", "message": "No playing world!"}
 
-    ue.log("Resetting level and pausing.")
+    ue.log("Resetting level.")
     # reset level
     playing_world.restart_level()
 
-    # pause the game (in our weird way to accommodate difference between actual game paused and simulator game paused
-    is_paused = GameplayStatics.IsGamePaused(playing_world)
-    ue.log("->is paused={}".format(is_paused))
-    if is_paused:
-        GameplayStatics.SetGamePaused(playing_world, False)
-        playing_world.world_tick(1/600.0, True)  # mini tick?
-    success = GameplayStatics.SetGamePaused(playing_world, True)
-    if not success:
-        ue.log("->WARNING: Game could not be paused after reset!")
+    # enqueue pausing the game for upcoming tick
+    asyncio.ensure_future(pause_game())
 
     return compile_obs_dict()
 
@@ -334,7 +347,7 @@ def step(message):
 
 def sanity_check_observer(observer, playing_world):
     obs_name = observer.get_name()
-    # the observer cold be destroyed
+    # the observer could be destroyed
     if not observer.is_valid():
         ue.log("Observer {} not valid".format(obs_name))
         return None, None
@@ -349,6 +362,64 @@ def sanity_check_observer(observer, playing_world):
     return observer.GetAttachParent(), obs_name
 
 
+def get_scene_capture_and_texture(parent, obs_name, width=86, height=86):
+    """
+    Adds a SceneCapture2DComponent to some parent camera object so we can capture the pixels for this camera view.
+    Then captures the image, renders it on the render target of the scene capture and returns the image as a numpy array.
+
+    :param uobject parent: The parent camera/scene-capture actor/component to which the new SceneCapture2DComponent needs to be attached
+    or for which the render target has to be created and/or returned
+    :param str obs_name: The name of the observer component.
+    :param int width: The width (in px) to use for the render target.
+    :param int height: The height (in px) to use for the render target.
+    :return: numpy array containing the pixel values (0-255) of the captured image
+    :rtype: np.ndarray
+    """
+
+    texture = None  # the texture object to use for getting the image
+
+    if parent.is_a(SceneCaptureComponent2D):
+        scene_capture = parent
+        texture = parent.TextureTarget
+    elif parent.is_a(CameraComponent):
+        scene_capture = get_child_component(parent, SceneCaptureComponent2D)
+        if scene_capture:
+            texture = scene_capture.TextureTarget
+        else:
+            scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "Engine2LearnScreenCapture", parent)
+            scene_capture.bCaptureEveryFrame = False
+            scene_capture.bCaptureOnMovement = False
+    # error -> return nothing
+    else:
+        raise RuntimeError("Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture2D!".format(obs_name))
+
+    if not texture:
+        # TODO: setup camera transform and options (greyscale, etc..)
+        texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(width, height)
+        ue.log("DEBUG: scene capture is created in get_scene_image texture={}".format(scene_capture.TextureTarget))
+
+    return scene_capture, texture
+
+
+def get_scene_capture_image(scene_capture, texture):
+    """
+    Takes a snapshot through a SceneCapture2DComponent and its Texture target and returns the image as a numpy array.
+
+    :param uobject scene_capture: The SceneCapture2DComponent uobject.
+    :param uobject texture: The TextureTarget uobject.
+    :return: numpy array containing the pixel values (0-255) of the captured image
+    :rtype: np.ndarray
+    """
+    # trigger the scene capture
+    scene_capture.CaptureScene()
+    # TODO: copy the bytes into the same memory location each time to avoid garbage collection
+    byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data, [mipmap]?) instead
+    np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
+    img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]
+
+    return img
+
+
 def compile_obs_dict():
     """
     Compiles the current observations (based on all active E2LObservers) into a dictionary that is returned to the UE4Env object's reset/step/... methods.
@@ -360,37 +431,13 @@ def compile_obs_dict():
         if not parent:
             continue
 
-        obs_name = observer.get_name()
-
         # this observer returns a camera image
         if observer.bScreenCapture:
-            texture = None  # the texture object to use for getting the image
-
-            if parent.is_a(SceneCaptureComponent2D):
-                texture = parent.TextureTarget
-                if not texture:
-                    return {"status": "error", "message": "SceneCapture2DComponent (parent of Observer {}) does not have a TextureTarget ".format(obs_name) +
-                                                          "(call `get_spec` first on the UE4Env)!"
-                            }
-                parent.CaptureScene()  # trigger scene capture
-            elif parent.is_a(CameraComponent):
-                scene_capture = get_child_component(parent, SceneCaptureComponent2D)
-                if scene_capture:
-                    texture = scene_capture.TextureTarget
-                    scene_capture.CaptureScene()
-                else:
-                    return {"status": "error", "message": "CameraComponent (parent of '{}') does not have a SceneCapture2DComponent ".format(obs_name) +
-                                                          "(call `get_spec` first on the UE4Env)!"
-                            }
-            else:
-                return {"status": "error",
-                        "message": "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture2D!".format(obs_name)}
-
-            # TODO: copy the bytes into the same memory location each time to avoid garbage collection
-            byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data, [mipmap]?) instead
-            np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
-            img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]
-
+            try:
+                scene_capture, texture = get_scene_capture_and_texture(parent, obs_name)
+            except RuntimeError as e:
+                return {"status": "error", "message": "{}".format(e)}
+            img = get_scene_capture_image(scene_capture, texture)
             _OBS_DICT[obs_name + ":camera"] = img
 
         for observed_prop in observer.ObservedProperties:
@@ -420,7 +467,7 @@ def get_spec():
     Returns the observation_space (observers) and action_space (action- and axis-mappings) of the Game as a dict with keys:
     `observation_space` and `action_space`
     """
-    auto_texture_size = (84, 84)  # the default size of SceneCapture2D components automatically added to a camera
+    # auto_texture_size = (84, 84)  # the default size of SceneCapture2D components automatically added to a camera
 
     playing_world = get_playing_world()
 
@@ -455,34 +502,10 @@ def get_spec():
 
         # this observer returns a camera image
         if observer.bScreenCapture:
-            if parent.is_a(SceneCaptureComponent2D):
-                texture = parent.TextureTarget
-                if not texture:
-                    # todo pass texture size and format
-                    texture = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
-                    parent.TextureTarget = texture
-                    ue.log("DEBUG: no texture A texture={}".format(texture))
-            elif parent.is_a(CameraComponent):
-                scene_capture = get_child_component(parent, SceneCaptureComponent2D)
-                if scene_capture:
-                    texture = scene_capture.TextureTarget
-                    if not texture:
-                        ue.log("DEBUG: scene capture is already there but w/o texture D -> creating one")
-                        texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
-                    ue.log("DEBUG: scene capture is already there B texture={}".format(texture))
-                # if it is a CameraComponent without SceneCaptureComponent2D -> generate one dynamically
-                else:
-                    scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "Engine2LearnScreenCapture", parent)
-                    scene_capture.bCaptureEveryFrame = False
-                    scene_capture.bCaptureOnMovement = False
-                    texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(auto_texture_size[0], auto_texture_size[1])
-                    ue.log("DEBUG: scene capture is created C texture={}".format(scene_capture.TextureTarget))
-                    # TODO: setup camera transform and options
-            else:
-                return {"status": "error", "message":
-                        "Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture!".format(obs_name)}
-
-            ue.log("DEBUG: scene capture's render target is now={}".format(texture))
+            try:
+                _, texture = get_scene_capture_and_texture(parent, obs_name)
+            except RuntimeError as e:
+                return {"status": "error", "message": "{}".format(e)}
             observation_space_desc[obs_name+":camera"] = {"type": "IntBox", "shape": (texture.SizeX, texture.SizeY, 3), "min": 0, "max": 255}
 
         # go through non-camera/capture properties that need to be observed by this Observer

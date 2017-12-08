@@ -63,7 +63,7 @@ class RemoteEnv(Env):
         self.socket.send(msgpack.packb(message))
     
     def recv(self):
-        unpacker = msgpack.Unpacker()
+        unpacker = msgpack.Unpacker(encoding="utf-8")
 
         # wait for an immediate response
         response = self.socket.recv(8)

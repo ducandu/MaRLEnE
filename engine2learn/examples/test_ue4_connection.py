@@ -15,7 +15,7 @@ import random
 from PIL import Image
 
 
-capture = True
+capture = False
 
 if __name__ == "__main__":
     print("Starting ...")
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     time_start = time.time()
     obs_dict = env.reset()
     if capture:
-        img = Image.fromarray(obs_dict["Observer2:camera"], "RGB")
+        img = Image.fromarray(obs_dict["Observer:camera"], "RGB")
         img.save("captures/reset.png")  # save first received image as a sanity-check
 
     #env.sbet(setters=("Ledge_test:RenderComponent:bSimulatePhysics", True))
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         real_time = (time_now - time_start)
         print("ticks={} would-be-play-time={:.2f}sec real-time={:.2f}sec".format(ticks, would_be_play_time, real_time))
         if capture:
-            img = Image.fromarray(obs_dict["Observer2:camera"], "RGB")
+            img = Image.fromarray(obs_dict["Observer:camera"], "RGB")
             img.save("captures/{:04d}.png".format(i))  # save all images to disk
     time_end = time.time()
 

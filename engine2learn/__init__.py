@@ -9,9 +9,9 @@
  -------------------------------------------------------------------------
 """
 
-# from .factory import connect_env
+from .factory import connect_env
 
-# __all__ = ["connect_env"]
+__all__ = ["connect_env"]
 
 
 VERSION_ = '0.1'

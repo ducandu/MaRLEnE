@@ -1,9 +1,8 @@
 """
  -------------------------------------------------------------------------
- AIOpening - 
- grid_world
+ Engine2Learn - envs/grid_world
  
- !!TODO: add file description here!! 
+ A simple grid world test env.
   
  created: 2017/08/31 in PyCharm
  (c) 2017 Sven - ducandu GmbH

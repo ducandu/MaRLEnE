@@ -2,7 +2,8 @@
  -------------------------------------------------------------------------
  engine2learn - envs/normalized_env.py
  
-
+ A ProxyEnv that normalizes its wrapped Env (observation_space and/or
+ action_space).
   
  created: 2017/10/09 in PyCharm
  (c) 2017 Sven - ducandu GmbH

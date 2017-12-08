@@ -27,7 +27,9 @@ def connect_env(type_="ue4", hostname="localhost", port=2017):
 
     # for now: the only supported type is ue4
     if type_ == "ue4":
-        return UE4Env(port, hostname)  # what other params are necessary?
+        env = UE4Env(hostname=hostname, port=port)  # what other params are necessary?
+        env.connect()
+        return env
 
     raise TypeError("type_ has to be 'ue4'!")
 

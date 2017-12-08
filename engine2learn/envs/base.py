@@ -1,6 +1,6 @@
 """
  -------------------------------------------------------------------------
- AIOpening - envs/base.py
+ Engine2Learn - envs/base.py
  
  Defines the base Env class for environments.
  Comes also with an openAI Env adapter class.

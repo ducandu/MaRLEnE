@@ -92,7 +92,7 @@ class SuccessorReprNetwork(Model):
         :param any kwargs: more params
         """
         self.num_actions = 6  # hardcode for now: TODO: need to write openAIEnv class wrapper first: env.action_space.shape
-        self.learning_rate = kwargs.get("learning_rate", 0.001)
+        self.learning_rate = kwargs.get("learning_rate", 0.0001)
         #self.beta = kwargs.get("beta", 0.0001)  # the weight for the entropy regularizer term (10e-4 according to [1])
         self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
         self.gamma = kwargs.get("gamma", 0.99)  # the discount factor gamma for representation learning

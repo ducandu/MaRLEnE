@@ -27,6 +27,38 @@ env.reset()
 # build tensorflow model for the SR
 net = SuccessorReprNetwork("SRNet", env)
 
+# collect 500,000 experience tuples in HDFS
+for step in range(500000):
+    # act uniformly randomly
+    s, r, is_terminal, _ = env.step(env.action_space.sample())
+    # TODO: store observations and actions on HDFS
+
+    # if episode is over -> reset
+    if is_terminal:
+        env.reset()
+
+# shuffle all experience tuples and push them through the network 10 epochs (times)
+# TODO: do this with pyspark once on disk -> then read systematically from disk and train network on batches
+# TODO every n steps -> update target network
+net.update_target(sess)
+
+# then produce 50,000 rows in the successor representation matrix T
+env.reset()
+for step in range(50000):
+    # act uniformly randomly
+    s, r, is_terminal, _ = env.step(env.action_space.sample())
+
+    # if episode is over -> reset
+    if is_terminal:
+        env.reset()
+
+# calculate right eigenvectors of T (e.g. first 1000)
+
+
+# each eigenvector is one eigenpurpose (reward function), which can then be used via "normal" RL to learn the (eigen)option's policy
+
+
+
 print("done")
 
 

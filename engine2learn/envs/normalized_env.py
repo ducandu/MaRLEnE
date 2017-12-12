@@ -39,7 +39,7 @@ class NormalizedEnv(ProxyEnv):
         # use NormalizedSpace to squeeze through incoming non-normalized samples
         # as well as re-scale normalized samples back to non-normalized ones
         self.norm_observations = spaces.NormalizedSpace(env.observation_space, alpha=alpha, keys_to_globally_normalize=keys_to_globally_normalize)
-        if do_normalize_actions:
+        if self.do_normalize_actions:
             self.norm_actions = spaces.NormalizedSpace(env.action_space, alpha=alpha)  # TODO: keys_to_globally_normalize
         else:
             self.norm_actions = None

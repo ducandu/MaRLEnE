@@ -16,7 +16,7 @@ from PIL import Image
 import numpy as np
 
 
-capture = False
+capture = True
 
 if __name__ == "__main__":
     print("Starting ...")
@@ -41,9 +41,13 @@ if __name__ == "__main__":
     delta_time = 1 / 60
 
     for i in range(1000):
-        obs_dict = env.step(delta_time=delta_time, num_ticks=num_ticks_per_action,
-                            axes=("MoveRight", np.random.choice([-1.0, 1.0, 0.0], p=[0.4, 0.4, 0.2])),
-                            actions=("Shoot", random.choice([False, True])))  # False if i % 10 else True
+        obs_dict = env.step(delta_time=delta_time, num_ticks=num_ticks_per_action,  #,
+                            axes=(("MoveForward", np.random.choice([1.0, -1.0, 1.0], p=[0.4, 0.4, 0.2])),
+                                  ("MoveRight", np.random.choice([-1.0, 1.0, 0.0], p=[0.4, 0.4, 0.2])))
+                            #actions=(#("Jump", random.choice([False, False, False, True])),
+                            #         #("Jump", random.choice([False, False, False, True])),
+                            #         ("Shoot", random.choice([False, True])))
+                            )
         time_now = time.time()
         ticks = (i + 1) * num_ticks_per_action
         would_be_play_time = ticks * delta_time

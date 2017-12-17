@@ -1,10 +1,10 @@
 # engine2learn
 Machine Learning Interface into the UE4 Game Engine.
 
-![Python](sven1977.github.com/engine2learn/images/python-logo.png)
-![Spark](sven1977.github.com/engine2learn/images/spark-logo.png)
-![TensorFlow](sven1977.github.com/engine2learn/images/tensorflow-logo.png)
-![UE4](sven1977.github.com/engine2learn/images/ue4-logo.png)
+![Python](sven1977.github.com/engine2learn/docs/images/python-logo.png)
+![Spark](sven1977.github.com/engine2learn/docs/images/spark-logo.png)
+![TensorFlow](sven1977.github.com/engine2learn/docs/images/tensorflow-logo.png)
+![UE4](sven1977.github.com/engine2learn/docs/images/ue4-logo.png)
 
 Connecting the Vagrant VM+Spark+Tensorflow world to the Game Dev world.
 
@@ -74,6 +74,21 @@ if __name__ == "__main__":
                             actions=("Shoot", random.choice([False, False, False, True])))
 
         # now use obs_dict to do some RL :)
+```
+
+
+### Cite
+
+If you use Engine2Learn in your academic research, we would be grateful if you could cite it as follows:
+
+```
+@misc{mika2017engine2learn,
+    author = {Mika, Sven and DeLoris, Roberto},
+    title = {Engine2Learn: Bringing Deep Reinforcement Learning to the Unreal Engine 4},
+    howpublished={Web page},
+    url = {https://github.com/ducandu/engine2learn},
+    year = {2017}
+}
 ```
 
 

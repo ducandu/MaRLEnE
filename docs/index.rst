@@ -21,7 +21,7 @@ Engine2Learn is a library for bringing reinforcement learning to the UnrealEngin
 
    readme_link.rst
    intro.rst
-   e2l_reference.rst
+..   e2l_reference.rst
 
 Indices and tables
 ==================

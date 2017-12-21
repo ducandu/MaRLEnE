@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "Engine2LearnSettings.generated.h"
+#include "MaRLEnESettings.generated.h"
 
 /**
  * 
  */
 UCLASS(config = Game, defaultconfig)
-class ENGINE2LEARN_API UEngine2LearnSettings : public UObject
+class MARLENE_API UMaRLEnESettings : public UObject
 {
 	GENERATED_BODY()
 	

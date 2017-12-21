@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ModuleManager.h"
 
-class FEngine2LearnModule : public IModuleInterface
+class FMaRLEnEModule : public IModuleInterface
 {
 public:
 

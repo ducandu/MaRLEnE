@@ -1,57 +1,57 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "E2LObserver.h"
+#include "MLObserver.h"
 #include "SlateExtras.h"
 #include "SlateBasics.h"
 
-#include "E2LObserversManager.h"
+#include "MLObserversManager.h"
 
 #include "DetailWidgetRow.h"
 
-TSharedRef<IPropertyTypeCustomization> FE2LObservedPropertyDetails::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FMLObservedPropertyDetails::MakeInstance()
 {
-	return MakeShareable(new FE2LObservedPropertyDetails);
+	return MakeShareable(new FMLObservedPropertyDetails);
 }
 
-TSharedRef<ITableRow> FE2LObservedPropertyDetails::OnGenerateRowForProp(TSharedPtr<struct FE2LPropertyItem> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> FMLObservedPropertyDetails::OnGenerateRowForProp(TSharedPtr<struct FMLPropertyItem> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	//Create the row
-	return SNew(STableRow< TSharedPtr<struct FE2LPropertyItem> >, OwnerTable)
+	return SNew(STableRow< TSharedPtr<struct FMLPropertyItem> >, OwnerTable)
 		.Padding(2.0f)
 		[
 			SNew(STextBlock).Text(FText::FromString(*Item.Get()->Name))
 		];
 }
 
-TSharedRef<SWidget> FE2LObservedPropertyDetails::OnGenerateWidget(TSharedPtr<FE2LPropertyItem> Item)
+TSharedRef<SWidget> FMLObservedPropertyDetails::OnGenerateWidget(TSharedPtr<FMLPropertyItem> Item)
 {
 	return SNew(STextBlock).Text(FText::FromString(Item->Name));
 }
 
-void FE2LObservedPropertyDetails::OnSelectionChanged(TSharedPtr<FE2LPropertyItem> Item, ESelectInfo::Type SelectType)
+void FMLObservedPropertyDetails::OnSelectionChanged(TSharedPtr<FMLPropertyItem> Item, ESelectInfo::Type SelectType)
 {
 	ObservedProperty->PropName = Item->Name;
 	SProp->MarkPackageDirty();
 }
 
 
-void FE2LObservedPropertyDetails::PropCheckChanged(ECheckBoxState CheckBoxState)
+void FMLObservedPropertyDetails::PropCheckChanged(ECheckBoxState CheckBoxState)
 {
 	ObservedProperty->bEnabled = CheckBoxState == ECheckBoxState::Checked;
 }
 
-FText FE2LObservedPropertyDetails::GetSelectedPropName() const
+FText FMLObservedPropertyDetails::GetSelectedPropName() const
 {
 	return FText::FromString(ObservedProperty->PropName);
 }
 
-ECheckBoxState FE2LObservedPropertyDetails::GetSelectedPropEnabled() const
+ECheckBoxState FMLObservedPropertyDetails::GetSelectedPropEnabled() const
 {
 	return ObservedProperty->bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
-bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
+bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
 	if (UArrayProperty *PArray = Cast<UArrayProperty>(Prop))
 	{
@@ -86,7 +86,7 @@ bool FE2LObservedPropertyDetails::ObservableProp(UProperty *Prop)
 	return false;
 }
 
-void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
 	TArray<UObject *> Objects;
@@ -95,7 +95,7 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	if (Objects.Num() != 1)
 		return;
 
-	UE2LObserver *Observer = Cast<UE2LObserver>(Objects[0]);
+	UMLObserver *Observer = Cast<UMLObserver>(Objects[0]);
 	if (!Observer)
 		return;
 
@@ -122,14 +122,14 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 	if (!SSProp)
 		return;
 
-	if (SSProp != FE2LObservedProperty::StaticStruct())
+	if (SSProp != FMLObservedProperty::StaticStruct())
 		return;
 
-	ObservedProperty = SProp->ContainerPtrToValuePtr<FE2LObservedProperty>(StructPropertyHandle->GetValueBaseAddress((uint8 *)Observer));
+	ObservedProperty = SProp->ContainerPtrToValuePtr<FMLObservedProperty>(StructPropertyHandle->GetValueBaseAddress((uint8 *)Observer));
 
 	ParentProperties.Empty();
 
-	TSharedPtr<FE2LPropertyItem> CurrentItem;
+	TSharedPtr<FMLPropertyItem> CurrentItem;
 
 
 
@@ -139,7 +139,7 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 		{
 			continue;
 		}
-		TSharedPtr<FE2LPropertyItem> PItem = TSharedPtr<FE2LPropertyItem>(new FE2LPropertyItem());
+		TSharedPtr<FMLPropertyItem> PItem = TSharedPtr<FMLPropertyItem>(new FMLPropertyItem());
 		PItem->Name = PropIt->GetName();
 		PItem->Object = Parent;
 		ParentProperties.Add(PItem);
@@ -150,20 +150,20 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 		}
 	}
 
-	ParentProperties.Sort([](const TSharedPtr<FE2LPropertyItem>& One, const TSharedPtr<FE2LPropertyItem>& Two)
+	ParentProperties.Sort([](const TSharedPtr<FMLPropertyItem>& One, const TSharedPtr<FMLPropertyItem>& Two)
 	{
 		return One->Name < Two->Name;
 	});
 
 	HeaderRow.NameContent()
 		[
-			SNew(SComboBox<TSharedPtr<FE2LPropertyItem>>)
+			SNew(SComboBox<TSharedPtr<FMLPropertyItem>>)
 			.OptionsSource(&ParentProperties)
-		.OnGenerateWidget(this, &FE2LObservedPropertyDetails::OnGenerateWidget)
-		.OnSelectionChanged(this, &FE2LObservedPropertyDetails::OnSelectionChanged)
+		.OnGenerateWidget(this, &FMLObservedPropertyDetails::OnGenerateWidget)
+		.OnSelectionChanged(this, &FMLObservedPropertyDetails::OnSelectionChanged)
 		.InitiallySelectedItem(CurrentItem)
 		.Content()[
-			SNew(STextBlock).Text(this, &FE2LObservedPropertyDetails::GetSelectedPropName)
+			SNew(STextBlock).Text(this, &FMLObservedPropertyDetails::GetSelectedPropName)
 		]
 		]
 	.ValueContent()
@@ -173,23 +173,23 @@ void FE2LObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHand
 			+ SHorizontalBox::Slot().AutoWidth()
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &FE2LObservedPropertyDetails::GetSelectedPropEnabled)
-		.OnCheckStateChanged(this, &FE2LObservedPropertyDetails::PropCheckChanged)
+			.IsChecked(this, &FMLObservedPropertyDetails::GetSelectedPropEnabled)
+		.OnCheckStateChanged(this, &FMLObservedPropertyDetails::PropCheckChanged)
 		]
 		];
 }
 
-void FE2LObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FMLObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	//Create further customization here
 }
 
 
 // Sets default values for this component's properties
-UE2LObserver::UE2LObserver()
+UMLObserver::UMLObserver()
 {
 
-	E2LObserversManager::RegisterObserver(this);
+	MLObserversManager::RegisterObserver(this);
 
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
@@ -198,26 +198,26 @@ UE2LObserver::UE2LObserver()
 	// ...
 
 	BillboardComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Billboard"), true);
-	BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine2Learn/Logo"));
+	BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/MaRLEnE/Logo"));
 	BillboardComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
 	bEnabled = true;
 }
 
-UE2LObserver::~UE2LObserver()
+UMLObserver::~UMLObserver()
 {
 	// unregister from the manager
-	E2LObserversManager::UnregisterObserver(this);
+	MLObserversManager::UnregisterObserver(this);
 }
 
-TArray<UE2LObserver *> UE2LObserver::GetRegisteredObservers()
+TArray<UMLObserver *> UMLObserver::GetRegisteredObservers()
 {
-	return E2LObserversManager::GetObservers();
+	return MLObserversManager::GetObservers();
 }
 
 
 // Called when the game starts
-void UE2LObserver::BeginPlay()
+void UMLObserver::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -227,19 +227,19 @@ void UE2LObserver::BeginPlay()
 
 
 // Called every frame
-void UE2LObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
 }
 
-void UE2LObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
+void UMLObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	E2LObserversManager::UnregisterObserver(this);
+	MLObserversManager::UnregisterObserver(this);
 }
 
-void UE2LObserver::OnAttachmentChanged()
+void UMLObserver::OnAttachmentChanged()
 {
 	Super::OnAttachmentChanged();
 
@@ -250,7 +250,7 @@ void UE2LObserver::OnAttachmentChanged()
 	}
 }
 
-void UE2LObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
+void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");

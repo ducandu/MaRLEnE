@@ -1,25 +1,28 @@
-# engine2learn
-Machine Learning Interface into the UE4 Game Engine.
+engine2learn - A Machine Learning Interface into the UE4 Game Engine
+====================================================================
 
-![Python](sven1977.github.com/engine2learn/docs/images/python-logo.png)
-![Spark](sven1977.github.com/engine2learn/docs/images/spark-logo.png)
-![TensorFlow](sven1977.github.com/engine2learn/docs/images/tensorflow-logo.png)
-![UE4](sven1977.github.com/engine2learn/docs/images/ue4-logo.png)
+[![Docs](https://readthedocs.org/projects/engine2learn/badge)](http://engine2learn.readthedocs.io/en/latest/)
+
+
+![Python](images/python-logo.png)
+![Spark](images/spark-logo.png)
+![TensorFlow](images/tensorflow-logo.png)
+![UE4](images/ue4-logo.png)
 
 Connecting the Vagrant VM+Spark+Tensorflow world to the Game Dev world.
 
 ### what is engine2learn?
-engine2learn is a python library as well as a UE4 plugin that - together - allow game developers and machine learning (ML) engineers
-to work hand in hand by connecting a highly parallelized ML pipeline (think Spark and Tensorflow) with
+engine2learn is a UE4 plugin that allows game developers and machine learning (ML) engineers
+to work hand in hand by connecting a highly parallelized ML pipeline (think: python-Tensorflow-Linux-Spark) with
 any UE4 game and use that game as a reinforcement learning environment.
 Our goal is to create smarter NPCs using state-of-the-art reinforcement learning (RL) methods and ML models.
 
-The engine2learn python library provides a simple RL interface allowing algorithms to reset the game
+The engine2learn Plugin is supported by TensorForce, a powerful RL library interface allowing algorithms to reset the game
 environment (the "Env"), and then step through it (tick by tick), thereby executing different actions (called action- and axis-mappings in UE4) at
 different time steps.
 
 
-### the UE4 side
+### the UE4 side (Game Developers)
 Game developers can use the Engine2Learn UE4 plugin to specify properties in the game, whose values are being sent to the ML
 pipeline after each step (e.g. the health value of a character or enemy). Also, UE4 camera actors can be used as scene observers
 such that they send their pixel recordings as 3D-tensors (w x h x RGB) after each time step back to the ML clients.
@@ -31,7 +34,7 @@ The Engine2Learn plugin also controls automatic building/packaging/cooking proce
 highly parallelized ML-world (our plugin deploys one game to 100s of ML nodes automatically and starts a specified ML script).
 
 
-### the python (ML) side
+### the python side (ML engineers)
 Once a control connection into a running game has been initiated by the ML pipeline, it can send commands to the game and use the game as
 a learning environment.
 The environment is represented on the python side as an engine2learn.Env object and offers the following interface for ML algorithms:
@@ -42,7 +45,11 @@ The environment is represented on the python side as an engine2learn.Env object 
 The step method returns an observation (following the single step), which can be used by the ML algorithm to update a mathematical model.
 
 ### quick setup
-1) Do pip install of the python engine2learn library.
+1) Get the latest UnrealEngine 4 for PC/Mac/Linux.
+Go to [![UnrealEngine.com](unrealengine.com)], then download and install the latest version of UE4.
+
+2)
+
 ```
 pip install engine2learn
 ```

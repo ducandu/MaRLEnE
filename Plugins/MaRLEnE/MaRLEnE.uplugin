@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MaRLEnE",
+	"Description": "Remote Machine- and Reinforcement Learning with MaRLEnE",
+	"Category": "Machine Learning",
+	"CreatedBy": "ducandu GmbH",
+	"CreatedByURL": "ducandu.ai",
+	"DocsURL": "https://github.com/ducandu/marlene",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/ducandu/marlene",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "MaRLEnE",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
+		}
+	]
+}

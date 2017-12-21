@@ -137,7 +137,7 @@ def get_scene_capture_image(scene_capture, texture):
     # trigger the scene capture
     scene_capture.CaptureScene()
     # TODO: copy the bytes into the same memory location each time to avoid garbage collection
-    byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data, [mipmap]?) instead
+    byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data,[mipmap]?) instead
     np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
     img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]  # slice away alpha value
 
@@ -146,9 +146,11 @@ def get_scene_capture_image(scene_capture, texture):
 
 def compile_obs_dict(reward=None):
     """
-    Compiles the current observations (based on all active E2LObservers) into a dictionary that is returned to the UE4Env object's reset/step/... methods.
+    Compiles the current observations (based on all active E2LObservers) into a dictionary that is returned to the
+    UE4Env object's reset/step/... methods.
 
-    :param Union[float,None] reward: The absolute global accumulated reward value to set (mostly used to reset everything to 0 after a new episode is started).
+    :param Union[float,None] reward: The absolute global accumulated reward value to set (mostly used to reset
+    everything to 0 after a new episode is started).
     :returns: The obs_dict as a python dict (ready to be sent back to the client).
     :rtype: dict
     """

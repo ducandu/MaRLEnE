@@ -1,6 +1,7 @@
 """
  -------------------------------------------------------------------------
- engine2learn - Plugins/Engine2Learn/Scripts/ducandu_server.py
+ MaRLEnE - Machine- and Reinforcement Learning ExtensioN for (game) Engines
+ Plugins/MaRLEnE/Scripts/marlene_server.py
 
  The server running inside UE4 (UnrealEnginePython) and listening on a
  port for incoming ML connections.
@@ -16,7 +17,7 @@ import unreal_engine as ue
 import asyncio
 import ue_asyncio
 import server_utils as util
-from unreal_engine.classes import Engine2LearnSettings, GameplayStatics, InputSettings
+from unreal_engine.classes import MaRLEnESettings, GameplayStatics, InputSettings
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
 
@@ -291,7 +292,7 @@ async def spawn_server(host, port):
 Main Program: Get UE4 settings and start listening on port for incoming connections.
 """
 
-settings = ue.get_mutable_default(Engine2LearnSettings)
+settings = ue.get_mutable_default(MaRLEnESettings)
 if settings.Address and settings.Port:
     asyncio.ensure_future(spawn_server(settings.Address, settings.Port))
 else:

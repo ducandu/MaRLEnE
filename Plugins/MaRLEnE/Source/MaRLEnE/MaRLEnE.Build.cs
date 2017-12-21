@@ -2,15 +2,15 @@
 
 using UnrealBuildTool;
 
-public class Engine2Learn : ModuleRules
+public class MaRLEnE : ModuleRules
 {
-	public Engine2Learn(ReadOnlyTargetRules Target) : base(Target)
+	public MaRLEnE(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
-				"Engine2Learn/Public"
+				"MaRLEnE/Public"
 				// ... add public include paths required here ...
 			}
 			);
@@ -18,7 +18,7 @@ public class Engine2Learn : ModuleRules
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"Engine2Learn/Private",
+				"MaRLEnE/Private",
 				// ... add other private include paths required here ...
 			}
 			);

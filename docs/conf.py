@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Engine2Learn documentation build configuration file, created by
+# MaRLEnEMaRLEnE documentation build configuration file, created by
 # sphinx-quickstart on Wed Nov 22 17:54:24 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -22,7 +22,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../spygame'))
 sys.path.insert(0, os.path.abspath('../'))
-#import engine2learn as el
 
 
 # -- General configuration ------------------------------------------------
@@ -57,7 +56,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'Engine2Learn'
+project = 'MaRLEnEMaRLEnE'
 copyright = '2017, Sven Mika'
 author = 'Sven Mika'
 
@@ -138,7 +137,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Engine2Learn.tex', 'Engine2Learn Documentation',
+    (master_doc, 'MaRLEnEMaRLEnE.tex', 'MaRLEnE Documentation',
      'Sven Mika', 'manual'),
 ]
 
@@ -148,7 +147,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'engine2learn', 'Engine2Learn Documentation',
+    (master_doc, 'marlene', 'MaRLEnE Documentation',
      [author], 1)
 ]
 
@@ -159,8 +158,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Engine2Learn', 'Engine2Learn Documentation',
-     author, 'Engine2Learn', 'One line description of project.',
+    (master_doc, 'MaRLEnE', 'MaRLEnE Documentation',
+     author, 'MaRLEnE', 'One line description of project.',
      'Miscellaneous'),
 ]
 

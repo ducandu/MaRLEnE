@@ -10,6 +10,14 @@
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
 #include "MLObserver.generated.h"
 
+UENUM(BlueprintType)		//"BlueprintType" is essential to include
+enum class EObserverType : uint8
+{
+	Normal 	UMETA(DisplayName = "Normal"),
+	Reward 	UMETA(DisplayName = "Reward (accum.)"),
+	IsTerminal	UMETA(DisplayName = "Is-Terminal")
+};
+
 USTRUCT()
 struct FMLObservedProperty
 {
@@ -62,12 +70,12 @@ protected:
 };
 
 
-UCLASS( ClassGroup=MaRLEnE, meta=(BlueprintSpawnableComponent), HideCategories(Mobility, Rendering, LOD, Collision, Physics, Activation, Cooking) )
+UCLASS(ClassGroup = MaRLEnE, meta = (BlueprintSpawnableComponent), HideCategories(Mobility, Rendering, LOD, Collision, Physics, Activation, Cooking))
 class MARLENE_API UMLObserver : public USceneComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	// Sets default values for this component's properties
 	UMLObserver();
 
@@ -79,11 +87,14 @@ public:
 	UPROPERTY(EditAnywhere)
 	bool bScreenCapture;
 
+	UPROPERTY(EditAnywhere)
+	EObserverType ObserverType;
+
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FMLObservedProperty> ObservedProperties;
 
-	UPROPERTY(EditAnywhere)
-	bool bUseActorProperties;
+	//UPROPERTY(EditAnywhere)
+	//bool bUseActorProperties;
 
 	UFUNCTION()
 	static TArray<UMLObserver *> GetRegisteredObservers();
@@ -100,10 +111,10 @@ protected:
 	UBillboardComponent *BillboardComponent;
 
 
-public:	
+public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
-	
+
+
 };

@@ -53,6 +53,67 @@ ECheckBoxState FMLObservedPropertyDetails::GetSelectedPropEnabled() const
 
 bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
+
+	
+
+	if (Prop->GetName() == "RelativeLocation")
+	{
+
+		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
+		{
+			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
+			{
+				if (SSProp == TBaseStructure<FVector>::Get())
+					return true;
+			}
+
+		}
+	}
+
+	if (Prop->GetName() == "RelativeRotation")
+	{
+
+		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
+		{
+			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
+			{
+				if (SSProp == TBaseStructure<FRotator>::Get())
+					return true;
+			}
+
+		}
+	}
+
+	if (Prop->GetName() == "RelativeScale3D")
+	{
+
+		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
+		{
+			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
+			{
+				if (SSProp == TBaseStructure<FVector>::Get())
+					return true;
+			}
+
+		}
+	}
+
+	if (Prop->GetName() == "bVisible")
+	{
+
+		if (UBoolProperty *SProp = Cast<UBoolProperty>(Prop))
+		{
+			return true;
+
+		}
+	}
+
+	if (!Prop->HasAllPropertyFlags(CPF_DisableEditOnInstance))
+	{
+		return true;
+	}
+
+	/*
 	if (UArrayProperty *PArray = Cast<UArrayProperty>(Prop))
 	{
 		return ObservableProp(PArray->Inner);
@@ -82,6 +143,7 @@ bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 		}
 
 	}
+	*/
 
 	return false;
 }
@@ -99,6 +161,9 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 	if (!Observer)
 		return;
 
+	UObject *Parent = Observer->GetAttachParent();
+
+	/*
 	UObject *Parent = nullptr;
 
 	if (!Observer->bUseActorProperties)
@@ -109,6 +174,7 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 	{
 		Parent = Observer->GetOwner();
 	}
+	*/
 
 	if (!Parent)
 		return;

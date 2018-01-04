@@ -54,6 +54,8 @@ ECheckBoxState FMLObservedPropertyDetails::GetSelectedPropEnabled() const
 bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
 
+	
+
 	if (Prop->GetName() == "RelativeLocation")
 	{
 
@@ -104,6 +106,11 @@ bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 			return true;
 
 		}
+	}
+
+	if (!Prop->HasAllPropertyFlags(CPF_DisableEditOnInstance))
+	{
+		return true;
 	}
 
 	/*

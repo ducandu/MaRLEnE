@@ -88,14 +88,15 @@ def sanity_check_observer(observer, playing_world):
 def get_scene_capture_and_texture(parent, obs_name, width=84, height=84):
     """
     Adds a SceneCapture2DComponent to some parent camera object so we can capture the pixels for this camera view.
-    Then captures the image, renders it on the render target of the scene capture and returns the image as a numpy array.
+    Then captures the image, renders it on the render target of the scene capture and returns the image as a numpy
+    array.
 
-    :param uobject parent: The parent camera/scene-capture actor/component to which the new SceneCapture2DComponent needs to be attached
-    or for which the render target has to be created and/or returned
+    :param uobject parent: The parent camera/scene-capture actor/component to which the new SceneCapture2DComponent
+        needs to be attached or for which the render target has to be created and/or returned.
     :param str obs_name: The name of the observer component.
     :param int width: The width (in px) to use for the render target.
     :param int height: The height (in px) to use for the render target.
-    :return: numpy array containing the pixel values (0-255) of the captured image
+    :return: numpy array containing the pixel values (0-255) of the captured image.
     :rtype: np.ndarray
     """
 
@@ -228,18 +229,17 @@ def compile_obs_dict(reward=None):
 
 def get_spec():
     """
-    Returns the observation_space (observers) and action_space (action- and axis-mappings) of the Game as a dict with keys:
-    `observation_space` and `action_space`
+    Returns the observation_space (observers) and action_space (action- and axis-mappings) of the Game as a dict with
+    keys: `observation_space` and `action_space`
     """
-    # auto_texture_size = (84, 84)  # the default size of SceneCapture2D components automatically added to a camera
-
     playing_world = get_playing_world()
 
     # build the action_space descriptor
     action_space_desc = {}
     input_ = ue.get_mutable_default(InputSettings)
     # go through all action mappings
-    # TODO: FOR NOW: ignore all non-keyboard mappings for simplicity. Later, we will have to create a tick box to specify which actions should be sent to ML
+    # TODO: FOR NOW: ignore all non-keyboard mappings for simplicity.
+    # TODO: Later, we will have to create a tick box to specify which actions should be sent to ML
     for action in input_.ActionMappings:
         if re.search(r'Gamepad|Mouse|Thumbstick', action.Key.KeyName):
             continue
@@ -276,7 +276,8 @@ def get_spec():
                 _, texture = get_scene_capture_and_texture(parent, obs_name)
             except RuntimeError as e:
                 return {"status": "error", "message": "{}".format(e)}
-            observation_space_desc[obs_name+"/camera"] = {"type": "IntBox", "shape": (texture.SizeX, texture.SizeY, 3), "min": 0, "max": 255}
+            observation_space_desc[obs_name+"/camera"] = {"type": "IntBox", "shape": (texture.SizeX, texture.SizeY, 3),
+                                                          "min": 0, "max": 255}
 
         # go through non-camera/capture properties that need to be observed by this Observer
         for observed_prop in observer.ObservedProperties:
@@ -298,10 +299,18 @@ def get_spec():
             elif type_ == int:
                 desc = {"type": "IntBox", "shape": (1,)}
             else:
-                return {"status": "error", "message": "Observed property {} has an unsupported type ({})".format(prop_name, type_)}
+                return {"status": "error", "message": "Observed property {} has an unsupported type ({})".
+                    format(prop_name, type_)}
 
             observation_space_desc[obs_name+"/"+prop_name] = desc
 
     # ue.log("observation_space_desc: {}".format(observation_space_desc))
 
-    return {"status": "ok", "action_space_desc": action_space_desc, "observation_space_desc": observation_space_desc}
+    return {"status": "ok", "game_name": get_project_name(), "action_space_desc": action_space_desc,
+            "observation_space_desc": observation_space_desc}
+
+
+# returns the UE project's name
+def get_project_name():
+    return ue.get_mutable_default(GeneralProjectSettings).ProjectName
+

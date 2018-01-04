@@ -17,7 +17,7 @@ import unreal_engine as ue
 import asyncio
 import ue_asyncio
 import server_utils as util
-from unreal_engine.classes import MaRLEnESettings, GameplayStatics, InputSettings
+from unreal_engine.classes import MaRLEnESettings, GameplayStatics, InputSettings, GeneralProjectSettings
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
 

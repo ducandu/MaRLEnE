@@ -99,6 +99,9 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 	if (!Observer)
 		return;
 
+	UObject *Parent = Observer->GetAttachParent();
+
+	/*
 	UObject *Parent = nullptr;
 
 	if (!Observer->bUseActorProperties)
@@ -109,6 +112,7 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 	{
 		Parent = Observer->GetOwner();
 	}
+	*/
 
 	if (!Parent)
 		return;

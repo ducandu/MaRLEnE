@@ -82,8 +82,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FMLObservedProperty> ObservedProperties;
 
-	UPROPERTY(EditAnywhere)
-	bool bUseActorProperties;
+	//UPROPERTY(EditAnywhere)
+	//bool bUseActorProperties;
 
 	UFUNCTION()
 	static TArray<UMLObserver *> GetRegisteredObservers();

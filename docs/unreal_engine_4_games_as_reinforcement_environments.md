@@ -1,5 +1,5 @@
-TensorForce and MaRLEnE
-=======================
+MaRLEnE - Machine- and Reinforcement Learning ExtensioN for (game) Engines
+==========================================================================
 
 **Or: How to Hook Up State-Of-the-Art Reinforcement Learning Algorithms to an UnrealEngine 4 Game**
 
@@ -9,29 +9,32 @@ TensorForce and MaRLEnE
 
 ### Introduction
 
-In this tutorial, we will introduce a new class of TensorForce environments: Unreal Engine 4 (UE4) games.
-Unreal Engine is a popular and blockbuster-capable game engine used by over one million game developers worldwide to create
-games like *Arkham City*, *Borderlands 2* or *Bioshock*.
-With a novel UE4 plugin (called *MaRLEnE*) and the new `UE4Environment` subclass of TensorForce's `Environment` interface
-you can now connect your RL algorithms remotely to an arbitrary UE4 game and run them against it,
+In this blog post, we will introduce a new class of TensorForce environments: Unreal Engine 4 (UE4) games.
+Unreal Engine is a popular and blockbuster-capable game engine used by over one million game developers worldwide
+to create games like *Arkham City*, *Borderlands 2* or *Bioshock*.
+With a novel UE4 plugin (called *MaRLEnE*) and the new `UE4Environment` subclass of TensorForce's
+`Environment` interface you can now connect your RL algorithms remotely to an arbitrary
+UE4 game and run them against this game,
 just as you would already do for Atari2600 games or other popular RL environments (CartPole anyone?).
 The UE4 game needs to be compiled with MaRLEnE (Machine- and Reinforcement Learning ExtensioN for (game) Engines)
 in order to be converted into an RL-learnable environment.
 
-The MaRLEnE extension was designed to b With this move, we are hoping to bridge the gap between the currently very disjoint worlds of academic, bleeding-edge
-machine- and reinforcement learning (ML & RL) on one side and professional game development on the other side.
-In order to "smarten up" their game characters, game devs currently have to work through strenuously
+The MaRLEnE extension was designed to bridge the gap between the currently very disjoint worlds of
+academic, bleeding-edge machine- and reinforcement learning (ML & RL) research on
+one side and professional game development on the other side.
+Currently, in order to "smarten up" their game characters, game devs have to work through strenuously
 detailed scripting techniques such as state machines (think: prohibitively complex if-then-else blocks),
 behavior trees, or utility functions. Contrary to that, reinforcement learning algorithms work on a unified, general,
 and well-understood framework, called a "Markov Decision Process (MDP)", which is interestingly completely
 analogous to how game engines work internally, with timed ticks, input interrupts and output generation.
-Therefore, arbitrary games can be learnt (at least to a certain extend) by such algorithms without much
-preparation necessary by the game (MDP) designer. Also, the ever accelerating scientific progress in the fields of
-deep learning and machine learning can immediately be tethered into games (even already published ones)
-without much tinkering and on game-specific AI
+Therefore, arbitrary games can be learnt (at least to a certain extend) by RL algorithms without much
+preparation necessary by the game designer. Also, the ever accelerating scientific progress in the fields of
+deep learning and reinforcement learning can be immediately tethered into specific games (even already published ones)
+without much work having to go into the special adaptation and fitting of the AI solution to that single game.
+
 The ultimate goal of combining UE4 with TensorForce is to enable game developers to pick arbitrary agents in their
 games, tick a box in the properties panel of that agent that says "learn in world", then wait for an overnight
-RL-optimization algo to finish, and - on the next day - watch the agent act cleverly in the game world.
+RL-optimization algo to finish, and - on the next day - watch the agent act more cleverly in the game world.
 
 <img src="images/the_occupation_screenshot.png" alt="UnrealEngine4 Game: The Occupation" />
 
@@ -39,15 +42,22 @@ RL-optimization algo to finish, and - on the next day - watch the agent act clev
 (*The Occupation* created on UE4 by Epic Games)</sub>
 
 
+### How MaRLEnE works together
+
+
+
 ### Setup Summary for MaRLEnE and TensorForce
 
 Quite a lot of software components need to be installed in order to run the example described in this tutorial.
+We are currently working on removing some of these requirements and make MaRLEnE available as a free extension
+on the [UE4 Marketplace](https://www.unrealengine.com/marketplace).
+
 Here is a quick summary of these installation steps (all described in detail in this blog post):
 
 * UnrealEngine4 (UE4) - to run the game
 * A python3 installation running on the same machine as your UE4 install - this can also be an Anaconda installation
 * MS Visual Studio - to compile the necessary UE4 plugins
-* The 2 necessary UE4 plugins: MaRLEnE and UnrealEnginePython - to convert the game into an RL-learnable
+* The 2 necessary UE4 plugins from github: `MaRLEnE` and `UnrealEnginePython` - to convert the game into an RL-learnable
 environment
 * Your machine learning environment including the TensorForce library - to run RL algorithms on the game
 
@@ -58,13 +68,14 @@ In the following, we will go step by step through the process of setting up an R
 starting from installing UE4 on your PC/Mac, downloading and installing a toy game (TODO: check: a fun version of the
 classic SpaceInvaders),
 and compiling and setting up all necessary plugins via Visual Studio.
-We will then explain, how to add special observer objects to your game in order to be able to receive
-state signals from the game environment into your TensorForce scripts.
-These observers can be attached to camera actors sending pixel information to the RL machinery
-or simply provide positional information (x/y/z) for certain game actors. We will also show you how the standard input
+We will then explain, how to add special ML-observer objects to your game in order to be able to receive
+state signals from the game environment into your TensorForce scripts. These observers can be attached to
+camera actors sending pixel information to the RL machinery
+or simply provide positional information (x/y/z) for certain game actors.
+We will also show you how the standard input
 settings in UE4 (e.g. keyboard or mouse inputs) directly define your RL environment's action space. MaRLEnE and
 TensorForce support discrete, continuous, as well as, composite action spaces (combinations of different spaces).
-In the last part of this tutorial, we will run a simple dqn-agent (deep Q-learning) against the game using TensorForce.
+In the last part of this tutorial, we will run a simple DQN-agent (deep Q-network) against the game using TensorForce.
 We will measure the agent's performance over time and watch the agent live in our UE4 editor while it becomes better
 and better at playing the game.
 
@@ -74,14 +85,13 @@ explain the "headless" (no-rendering/server mode) Linux capabilities of MaRLEnE 
 We will now go through all the installation steps necessary to get UE4 as well as all its necessary plugins up and
 running.
 Building and installing UE4 plugins can be a tedious process, but once you have built each plugin once, you can reuse
-them for all your following games and projects, so bear with me here and let's pull through this together.
+them for all your following games and projects, so bear with us here and let's pull through this together.
 
 
 #### Get UnrealEngine 4
 
 Go to [Epic's website](unrealengine.com) to download the newest version of UE4 for PC or Mac. You will be asked to
-create an account (or use your Google or Facebook account) before you can download the software, but - trust me -
-it'll be worth it.
+create an account (or use your Google or Facebook account) before you can download the software.
 UE4 is generally a free and open sourced software. However, if you start making money with selling games that you
 have created with UE4, they will take a (I believe: fair) share of your profits.
 
@@ -95,30 +105,34 @@ Execute the installer and follow the installation instructions for UE4, then sta
 comes with the UE4 editor. You may be asked to login again with your Epic credentials and should now see a screen
 similar to this one:
 
-<img src="images/epic_launcher.png" alt="Epic Games Launcher GUI" width=600 height=380 />
-<sub>Epic Games Launcher Screenshot with the already installed UE4 Editor (version 4.18.0)</sub>
+<img src="images/epic_launcher.png" alt="Epic Games Launcher GUI" style="float:right;" width=600 height=380 />
+
+<sub>Epic Games Launcher Screenshot with an already installed UE4 Editor (version 4.18.0)</sub>
 
 Follow the UE4 installation instructions inside the Launcher to install the newest UE4 version
-on your local machine.
+on your local machine. The Launcher allows you to keep different versions of UE4 in case your projects require
+different UE4 releases.
 
 
 #### 1.2 Get MS Visual Studio 2017
 
-Go to the [Visual Studio download page](https://www.visualstudio.com/downloads/) to get "Visual Studio Community" (2017
-should work fine) and install MS VS on your local machine. Again, you will have to create an account with MicroSoft in
+Next, go to the [Visual Studio download page](https://www.visualstudio.com/downloads/) to get
+"Visual Studio Community" (2017 should work fine) and install MS VS on your local machine.
+Again, you will have to create an account (this time with MicroSoft) in
 order to be able to run the software, but other than that, the installation procedure should be straight forward.
 
 We will only use VS - for this tutorial - to quickly compile our plugins. However, this will already be a good exercise
-into working with the Unreal Engine's C++ code in case you are interested in writing your own C++ based  games in the
+into working with the Unreal Engine's C++ code in case you are interested in writing your own C++ based ames in the
 future.
+
 
 #### 1.3 Get the Game for this Tutorial
 
 We will be using a simple 3D physics-simulated game (called "Snake Physics") for this tutorial,
 because it's easy to setup and modify, and also to learn by different RL agents. In fact, our game is so easy,
 that even a random agent will perform astonishingly well.
-However, we will prove in the benchmarking section of this post that our algo does learn a good and close-to-optimal
-policy and that TensorForce's different agent types will all kick the random dummy's butt (and maybe even our human
+However, we will prove in the benchmarking section of this post that our algos do learn good and close-to-optimal
+policies and that TensorForce's different agent types will all kick the random dummy's butt (and maybe even our human
 ones, depending on our gaming skills, that is).
 
 <img src="images/snake_physics_game.png" alt="Snake Physics" />
@@ -132,14 +146,14 @@ from google drive. Save the .rar file in some folder of your choice and unpack i
 
 In the Unreal world, each game lives in its own folder (where ever that is) and all its settings, assets, scripts,
 etc.. go into special subdirectories. Also, at the root of that game folder, you will find the
-SnakePhysics.uproject file.
+*SnakePhysics.uproject* file, a  simple json file that contains basic information about the game.
 
 
 #### 1.4 Test-Start the Game in the UE4 Editor
 
 Just to make sure everything works up until here, you should start up the downloaded game in the UE4 editor.
-Bring up the "Epic Games Launcher" (installed together with UE4) and click on the Engine version you would like to
-launch (at this point, you will only have one version of UE4 installed). You should first see this startup screen:
+Bring up your "Epic Games Launcher" (installed together with UE4) and click on the Engine version you would like to
+launch (at this point, you probably only have one version of UE4 installed). You should first see this startup screen:
 
 <img src="images/ue4_editor_startup_screen.png" alt="UE4 Editor Startup Screen" width=400 height=150 />
 
@@ -154,13 +168,14 @@ Our Snake Physics game opened in the UE4 editor.
 
 #### 1.5 Getting the Source Code for MaRLEnE and UnrealEnginePython
 
-Now it's time to install and setup the 2 needed plugins, MaRLEnE and UnrealEnginePython. The UnrealEnginePython
+Now it's time to install and setup the two needed plugins: MaRLEnE and UnrealEnginePython. The UnrealEnginePython
 plugin will be obsoleted in future releases, which will also conveniently remove the python3 requirement on
 your UE4 machine, but for now (alpha-testing and prototyping phase), we will still depend on it.
 
-Since Snake Physics is a "blueprint" (BP) game as opposed to a C++ game, we will compile our C++-based plugins using a
-different dummy project.
-The following steps will seem counterintuitive and we might change this in a future version of
+UE4 knows two types of game projects: Blueprint- (BP) and C++ based.
+Since Snake Physics is a blueprint game and our plugins are written in C++ and need to be compiled, we will have to
+compile them using a different dummy (C++) project.
+The following steps will seem counterintuitive and we will change this in a future version of
 this post, but for now, it's how we will get things done:
 
 In the UE4 editor, click on File->New Project, then make sure you have the C++ tab selected (as opposed to the
@@ -232,21 +247,44 @@ the `Plugins` directory of the dummy game into a newly created `Plugins` directo
 ### Activating the Plugins and Making them Work
 
 Start the Snake Physics game from the Epic Launcher. By now, this project should be available as a quick link in the Launcher.
-To make sure our plugins have been added to the game, check the main menu: *Edit->Plugins* and scroll down on the left side
-to "Project" to see the two `MaRLEnE` and 'UnrealEnginePython' plugins active.
+To make sure our plugins have been added to the game, check the main menu: *Edit->Plugins* in the opened UE4 editor
+and then scroll down on the left side to "Project" to see the two `MaRLEnE` and `UnrealEnginePython` plugins active:
 
+<img src="images/checking_whether_plugins_are_active.png" alt="The two plugins are enabled." />
 
 Now that the necessary plugins are active in our game, let's set them up. This will be the last step before we can
 focus our attention on the reinforcement learning and TensorForce part of this project.
 
-#### Generic MaRLEnE settings: Host and Port
+##### Generic MaRLEnE settings: Host and Port
 
 When run against TensorForce RL-algos, UE4 games will be "remote environments", which means that TensorForce
 communicates with the games via TCP/IP. Actions (keys pressed, mouse moves, etc..) will be sent from TensorForce
 to the game to be used as faked player input and observations from the game, such as image pixels or some actor's
 3D-position will be sent back to the RL-machinery.
 
-Go to 'Edit->Project Settings' in the top UE4 menu. You should see
+Go to *Edit->Project Settings* in the top UE4 menu and scroll all the way down on the left side to see the category:
+"Machine Learning". Click on General and enter `localhost` and `6025` as the host- and port setting (or pick another port
+if 6025 is already used for something else on your local machine). These settings determine, where the UE4Environment can
+be reached from within TensorForce.
+
+##### Determining our RL Action Space via the Game's Input Settings
+
+Stay in the *Project Settings* and scroll back up on the left side to *Engine ... Input*. Then check out the "Bindings" panel.
+There should already be some input bindings defined for the Snake Physics game. Something like this:
+
+<img src="images/input_settings.png" alt="The already in-place input settings for Snake Physics" />
+
+Because the MaRLEnE plugin is active, we can now determine, which of these bindings belong to the actual RL action space.
+
+We will un-tick the "ML-relevant" tick-boxes right of the following single axis mappings:
+- Turn
+- LookUpRate
+- LookUp
+- MoveUp
+
+This lets MaRLEnE and TensorForce know that these actions are not available to our RL-algorithm.
+
+
 
 
 

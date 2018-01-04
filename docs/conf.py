@@ -56,7 +56,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'MaRLEnEMaRLEnE'
+project = 'MaRLEnE'
 copyright = '2017, Sven Mika'
 author = 'Sven Mika'
 

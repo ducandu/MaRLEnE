@@ -2,18 +2,12 @@ import unreal_engine as ue
 from unreal_engine.classes import DumbActor_C
 from unreal_engine.classes import GameplayStatics
 from unreal_engine import FVector
+from .server_utils import get_playing_world
 
-def get_playing_world():
-    playing_world = None
-    for world in ue.all_worlds():
-        if world.get_world_type() in (1, 3):
-            playing_world = world
-            break
-    return playing_world
 
 world = get_playing_world()
 if not world:
-    raise Exception('no playing world found')
+    raise Exception("no playing world found")
 
 dumb_actor = None
 for actor in world.all_actors():
@@ -34,7 +28,6 @@ for i in range(4):
     GameplayStatics.SetGamePaused(world, True)
     print(dumb_actor.get_actor_location())
 
-# just for safety    
+# just for safety
 GameplayStatics.SetGamePaused(world, True)
-
 

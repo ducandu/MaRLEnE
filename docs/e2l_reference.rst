@@ -4,7 +4,7 @@ Engine2Learn API Reference Documentation
 Core API
 --------
 
-.. automodule:: engine2learn
+.. automodule:: marlene
     :members:
     :undoc-members:
     :show-inheritance:
@@ -15,7 +15,7 @@ Example Classes:
 Models
 ++++++
 
-.. automodule:: engine2learn.examples.models
+.. .. automodule:: engine2learn.examples.models
     :members:
     :undoc-members:
     :show-inheritance:

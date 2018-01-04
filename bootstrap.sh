@@ -64,36 +64,36 @@ echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/" >> /home/ubuntu/.bash
 # ------------
 # Hadoop setup
 # ------------
-# hadoop user
-id -u hadoop &>/dev/null || (sudo groupadd somegroupname && sudo adduser -q --disabled-password --ingroup hadoop --gecos "" hadoop && sudo usermod -a -G hadoop ubuntu)
+## hadoop user
+#id -u hadoop &>/dev/null || (sudo groupadd somegroupname && sudo adduser -q --disabled-password --ingroup hadoop --gecos "" hadoop && sudo usermod -a -G hadoop ubuntu)
 
-# setup for ssh
-sudo rm -rf id_rsa_hadoop
-sudo ssh-keygen -b 2048 -t rsa -q -f id_rsa_hadoop -N ""
-sudo mkdir -p /home/hadoop/.ssh/
-sudo mv id_rsa_hadoop /home/hadoop/.ssh/id_rsa
-sudo mv id_rsa_hadoop.pub /home/hadoop/.ssh/id_rsa.pub
-# Get and install Hadoop
-cd ~hadoop
-sudo wget --no-verbose http://apache.osuosl.org/hadoop/common/hadoop-2.8.2/hadoop-2.8.2.tar.gz
-sudo mkdir -p hadoop
-# -C hadoop --strip-components=1
-sudo tar -xf hadoop-2.8.2.tar.gz
-echo "export HADOOP_HOME=$(pwd)/hadoop" >> /home/ubuntu/.bashrc
-export HADOOP_HOME=$(pwd)/hadoop
-echo "export PATH=$PATH:$HADOOP_HOME/bin" >> /home/ubuntu/.bashrc
-export PATH=$PATH:$HADOOP_HOME/bin
-echo "export HADOOP_CLASSPATH=$(hadoop classpath)" >> /home/ubuntu/.bashrc
-export HADOOP_CLASSPATH=$(hadoop classpath)
-echo "export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop" >> /home/ubuntu/.bashrc
-export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
-# Configure hadoop
+## setup for ssh
+#sudo rm -rf id_rsa_hadoop
+#sudo ssh-keygen -b 2048 -t rsa -q -f id_rsa_hadoop -N ""
+#sudo mkdir -p /home/hadoop/.ssh/
+#sudo mv id_rsa_hadoop /home/hadoop/.ssh/id_rsa
+#sudo mv id_rsa_hadoop.pub /home/hadoop/.ssh/id_rsa.pub
+## Get and install Hadoop
+#cd ~hadoop
+#sudo wget --no-verbose http://apache.osuosl.org/hadoop/common/hadoop-2.8.2/hadoop-2.8.2.tar.gz
+#sudo mkdir -p hadoop
+## -C hadoop --strip-components=1
+#sudo tar -xf hadoop-2.8.2.tar.gz
+#echo "export HADOOP_HOME=$(pwd)/hadoop" >> /home/ubuntu/.bashrc
+#export HADOOP_HOME=$(pwd)/hadoop
+#echo "export PATH=$PATH:$HADOOP_HOME/bin" >> /home/ubuntu/.bashrc
+#export PATH=$PATH:$HADOOP_HOME/bin
+#echo "export HADOOP_CLASSPATH=$(hadoop classpath)" >> /home/ubuntu/.bashrc
+#export HADOOP_CLASSPATH=$(hadoop classpath)
+#echo "export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop" >> /home/ubuntu/.bashrc
+#export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+## Configure hadoop
 
-# Give to hadoop
-sudo chown -R hadoop:hadoop /home/hadoop/hadoop
-sudo chmod g+w -R /home/hadoop/hadoop-2.8.2
-sudo ln -s /home/hadoop/hadoop-2.8.2 /home/hadoop/hadoop
-cd
+## Give to hadoop
+#sudo chown -R hadoop:hadoop /home/hadoop/hadoop
+#sudo chmod g+w -R /home/hadoop/hadoop-2.8.2
+#sudo ln -s /home/hadoop/hadoop-2.8.2 /home/hadoop/hadoop
+#cd
 
 
 # -----------------
@@ -105,20 +105,13 @@ cd ~ubuntu
 wget --no-verbose http://archive.apache.org/dist/spark/spark-2.2.0/spark-2.2.0-bin-hadoop2.7.tgz
 #gunzip spark-2.2.0-bin-hadoop2.7.tgz
 tar -xf spark-2.2.0-bin-hadoop2.7.tgz
-rm spark-2.2.0-bin-hadoop2.7.tar
+#rm spark-2.2.0-bin-hadoop2.7.tar
 echo "export SPARK_HOME=$(pwd)/spark-2.2.0-bin-hadoop2.7" >> /home/ubuntu/.bashrc
 export SPARK_HOME=$(pwd)/spark-2.2.0-bin-hadoop2.7
 echo "export PATH=${SPARK_HOME}/bin:${PATH}" >> /home/ubuntu/.bashrc
 export PATH=${SPARK_HOME}/bin:${PATH}
 # give to ubuntu
 sudo chown -R ubuntu:ubuntu ${SPARK_HOME}
-
-# get Hadoop and install
-#cd
-#wget --no-verbose http://apache.mirror.iphh.net/hadoop/common/hadoop-2.7.4/hadoop-2.7.4.tar.gz
-#gunzip hadoop-2.7.4.tar.gz
-#tar -xf hadoop-2.7.4.tar
-#rm hadoop-2.7.4.tar
 
 # link all python libs inside /vagrant/
 echo "export PYTHONPATH=/vagrant/" >> /home/ubuntu/.bashrc

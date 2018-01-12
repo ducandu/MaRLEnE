@@ -90,7 +90,7 @@ If you use Engine2Learn in your academic research, we would be grateful if you c
 
 ```
 @misc{mika2017engine2learn,
-    author = {Mika, Sven and DeLoris, Roberto},
+    author = {Mika, Sven and De Ioris, Roberto},
     title = {Engine2Learn: Bringing Deep Reinforcement Learning to the Unreal Engine 4},
     howpublished={Web page},
     url = {https://github.com/ducandu/engine2learn},

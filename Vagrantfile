@@ -61,7 +61,7 @@ Vagrant.configure("2") do |config|
   # argument is a set of non-required options.
   config.vm.synced_folder "../tensorforce", "/tensorforce"
   # UnrealEngine (Linux) build directory (make sure this is not `Dropboxed` (takes lots of CPU))
-  config.vm.synced_folder "C:/UnrealEngineLinux", "/UnrealEngine"
+  config.vm.synced_folder "D:/UnrealEngineLinux", "/UnrealEngine"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.

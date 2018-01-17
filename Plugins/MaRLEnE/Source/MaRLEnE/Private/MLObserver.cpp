@@ -54,7 +54,7 @@ ECheckBoxState FMLObservedPropertyDetails::GetSelectedPropEnabled() const
 bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 {
 
-	
+
 
 	if (Prop->GetName() == "RelativeLocation")
 	{
@@ -148,35 +148,47 @@ bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 	return false;
 }
 
+UBlueprintGeneratedClass *UMLObserver::GetBlueprintTemplate()
+{
+	UObject *Outer = GetOuter();
+	for (UObject *CurrentOuter = Outer; CurrentOuter; CurrentOuter = CurrentOuter->GetOuter())
+	{
+		if (CurrentOuter->IsA<UBlueprintGeneratedClass>())
+		{
+			return (UBlueprintGeneratedClass *)CurrentOuter;
+		}
+	}
+	return nullptr;
+}
+
 void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
 	TArray<UObject *> Objects;
 	StructPropertyHandle->GetOuterObjects(Objects);
 
+
 	if (Objects.Num() != 1)
 		return;
+
 
 	UMLObserver *Observer = Cast<UMLObserver>(Objects[0]);
 	if (!Observer)
 		return;
 
-	UObject *Parent = Observer->GetAttachParent();
+	UClass *OwnerClass = nullptr;
 
-	/*
-	UObject *Parent = nullptr;
-
-	if (!Observer->bUseActorProperties)
+	UObject *Owner = Observer->GetOwner();
+	if (Owner)
 	{
-		Parent = Observer->GetAttachParent();
+		OwnerClass = Owner->GetClass();
 	}
 	else
 	{
-		Parent = Observer->GetOwner();
+		OwnerClass = Observer->GetBlueprintTemplate();
 	}
-	*/
 
-	if (!Parent)
+	if (!OwnerClass)
 		return;
 
 
@@ -197,9 +209,14 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 
 	TSharedPtr<FMLPropertyItem> CurrentItem;
 
+	EFieldIteratorFlags::SuperClassFlags SuperFlags = EFieldIteratorFlags::SuperClassFlags::ExcludeSuper;
 
+	if (Observer->bShowInheritedVariables)
+	{
+		SuperFlags = EFieldIteratorFlags::SuperClassFlags::IncludeSuper;
+	}
 
-	for (TFieldIterator<UProperty> PropIt(Parent->GetClass()); PropIt; ++PropIt)
+	for (TFieldIterator<UProperty> PropIt(OwnerClass, SuperFlags); PropIt; ++PropIt)
 	{
 		if (!ObservableProp(*PropIt))
 		{
@@ -207,7 +224,7 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 		}
 		TSharedPtr<FMLPropertyItem> PItem = TSharedPtr<FMLPropertyItem>(new FMLPropertyItem());
 		PItem->Name = PropIt->GetName();
-		PItem->Object = Parent;
+		PItem->Class = OwnerClass;
 		ParentProperties.Add(PItem);
 
 		if (PItem->Name.Equals(ObservedProperty->PropName))
@@ -225,23 +242,21 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 		[
 			SNew(SComboBox<TSharedPtr<FMLPropertyItem>>)
 			.OptionsSource(&ParentProperties)
-		.OnGenerateWidget(this, &FMLObservedPropertyDetails::OnGenerateWidget)
-		.OnSelectionChanged(this, &FMLObservedPropertyDetails::OnSelectionChanged)
-		.InitiallySelectedItem(CurrentItem)
-		.Content()[
-			SNew(STextBlock).Text(this, &FMLObservedPropertyDetails::GetSelectedPropName)
-		]
+			.OnGenerateWidget(this, &FMLObservedPropertyDetails::OnGenerateWidget)
+			.OnSelectionChanged(this, &FMLObservedPropertyDetails::OnSelectionChanged)
+			.InitiallySelectedItem(CurrentItem)
+			.Content()
+			[
+				SNew(STextBlock).Text(this, &FMLObservedPropertyDetails::GetSelectedPropName)
+			]
 		]
 	.ValueContent()
 		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot().AutoWidth()
-		[
-			SNew(SCheckBox)
-			.IsChecked(this, &FMLObservedPropertyDetails::GetSelectedPropEnabled)
-		.OnCheckStateChanged(this, &FMLObservedPropertyDetails::PropCheckChanged)
-		]
+			
+				SNew(SCheckBox)
+					.IsChecked(this, &FMLObservedPropertyDetails::GetSelectedPropEnabled)
+					.OnCheckStateChanged(this, &FMLObservedPropertyDetails::PropCheckChanged)
+			
 		];
 }
 
@@ -262,18 +277,41 @@ UMLObserver::UMLObserver()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
-
-	BillboardComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Billboard"), true);
-	BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/MaRLEnE/Logo"));
-	BillboardComponent->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
-
 	bEnabled = true;
+	BillboardComponent = nullptr;
+	BillboardScale = 1;
 }
 
-UMLObserver::~UMLObserver()
+void UMLObserver::OnRegister()
 {
+	AActor *Owner = GetOwner();
+	if (Owner && Owner->GetRootComponent() && !BillboardComponent)
+	{
+		BillboardComponent = NewObject<UBillboardComponent>(Owner, NAME_None, RF_Transient);
+		BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/MaRLEnE/Logo"));
+		BillboardComponent->Mobility = EComponentMobility::Movable;
+		BillboardComponent->bHiddenInGame = true;
+		BillboardComponent->bIsEditorOnly = true;
+		BillboardComponent->SetupAttachment(Owner->GetRootComponent());
+		BillboardComponent->RegisterComponent();
+		BillboardComponent->SetRelativeLocation(BillboardLocation);
+		BillboardComponent->SetEditorScale(BillboardScale);
+	}
+
+	Super::OnRegister();
+}
+
+void UMLObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
+
+	if (BillboardComponent)
+		BillboardComponent->DestroyComponent();
+
 	// unregister from the manager
 	MLObserversManager::UnregisterObserver(this);
+
 }
 
 TArray<UMLObserver *> UMLObserver::GetRegisteredObservers()
@@ -300,24 +338,22 @@ void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 	// ...
 }
 
-void UMLObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
-{
-	MLObserversManager::UnregisterObserver(this);
-}
-
-void UMLObserver::OnAttachmentChanged()
-{
-	Super::OnAttachmentChanged();
-
-	USceneComponent *Parent = GetAttachParent();
-	if (Parent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Parent changed to %s"), *Parent->GetName());
-	}
-}
 
 void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
+
+	if (BillboardComponent)
+	{
+		if (PropertyChangedEvent.GetPropertyName() == FName("BillboardLocation"))
+		{
+			BillboardComponent->SetRelativeLocation(BillboardLocation);
+		}
+
+		else if (PropertyChangedEvent.GetPropertyName() == FName("BillboardScale"))
+		{
+			BillboardComponent->SetEditorScale(BillboardScale);
+		}
+	}
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyEditorModule.NotifyCustomizationModuleChanged();

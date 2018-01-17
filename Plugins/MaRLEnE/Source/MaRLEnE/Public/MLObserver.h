@@ -8,6 +8,7 @@
 #include "Editor/PropertyEditor/Public/IDetailCustomization.h"
 #include "Editor/PropertyEditor/Public/DetailCategoryBuilder.h"
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "MLObserver.generated.h"
 
 UENUM(BlueprintType)		//"BlueprintType" is essential to include
@@ -39,7 +40,7 @@ struct FMLObservedProperty
 struct FMLPropertyItem
 {
 	FString Name;
-	UObject *Object;
+	UClass *Class;
 };
 
 class FMLObservedPropertyDetails : public IPropertyTypeCustomization
@@ -71,38 +72,50 @@ protected:
 
 
 UCLASS(ClassGroup = MaRLEnE, meta = (BlueprintSpawnableComponent), HideCategories(Mobility, Rendering, LOD, Collision, Physics, Activation, Cooking))
-class MARLENE_API UMLObserver : public USceneComponent
+class MARLENE_API UMLObserver : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this component's properties
 	UMLObserver();
-
-	~UMLObserver();
+	void OnRegister() override;
+	void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 
 	UPROPERTY(EditAnywhere, Category = General)
 	bool bEnabled;
+
+	UPROPERTY(EditAnywhere, Category = Billboard)
+	FVector BillboardLocation;
+
+	UPROPERTY(EditAnywhere, Category = Billboard)
+	float BillboardScale;
 
 	UPROPERTY(EditAnywhere)
 	bool bScreenCapture;
 
 	UPROPERTY(EditAnywhere)
+	bool bGrayscale;
+
+	UPROPERTY(EditAnywhere)
+	int32 Width;
+
+	UPROPERTY(EditAnywhere)
+	int32 Height;
+
+	UPROPERTY(EditAnywhere)
 	EObserverType ObserverType;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bShowInheritedVariables;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FMLObservedProperty> ObservedProperties;
 
-	//UPROPERTY(EditAnywhere)
-	//bool bUseActorProperties;
-
 	UFUNCTION()
 	static TArray<UMLObserver *> GetRegisteredObservers();
 
-	void OnAttachmentChanged() override;
-
 	void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent);
-	void OnComponentDestroyed(bool bDestroyingHierarchy);
 
 protected:
 	// Called when the game starts
@@ -116,5 +129,5 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 
-
+	UBlueprintGeneratedClass *GetBlueprintTemplate();
 };

@@ -14,9 +14,9 @@ class MARLENE_API UMaRLEnESettings : public UObject
 {
 	GENERATED_BODY()
 	
-		UPROPERTY(EditAnywhere, config, Category = Custom)
-		FString Address;
+	UPROPERTY(EditAnywhere, config, Category = Network)
+	FString Address;
 	
-		UPROPERTY(EditAnywhere, config, Category = Custom)
-		uint32 Port;
+	UPROPERTY(EditAnywhere, config, Category = Network)
+	uint32 Port;
 };

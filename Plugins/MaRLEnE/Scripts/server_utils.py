@@ -1,6 +1,6 @@
 """
  -------------------------------------------------------------------------
- engine2learn - server_utils.py
+ MaRLEnE - server_utils.py
  
  Utility functions for the server-side environment script.
   
@@ -10,7 +10,7 @@
 """
 
 import unreal_engine as ue
-from unreal_engine.classes import E2LObserver, GameplayStatics, CameraComponent, InputSettings, SceneCaptureComponent2D
+from unreal_engine.classes import MLObserver, GameplayStatics, CameraComponent, InputSettings, SceneCaptureComponent2D
 import numpy as np
 import re
 
@@ -110,7 +110,7 @@ def get_scene_capture_and_texture(parent, obs_name, width=84, height=84):
         if scene_capture:
             texture = scene_capture.TextureTarget
         else:
-            scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "Engine2LearnScreenCapture", parent)
+            scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "MaRLEnEScreenCapture", parent)
             scene_capture.bCaptureEveryFrame = False
             scene_capture.bCaptureOnMovement = False
     # error -> return nothing
@@ -147,7 +147,7 @@ def get_scene_capture_image(scene_capture, texture):
 
 def compile_obs_dict(reward=None):
     """
-    Compiles the current observations (based on all active E2LObservers) into a dictionary that is returned to the
+    Compiles the current observations (based on all active MLObservers) into a dictionary that is returned to the
     UE4Env object's reset/step/... methods.
 
     :param Union[float,None] reward: The absolute global accumulated reward value to set (mostly used to reset
@@ -158,7 +158,7 @@ def compile_obs_dict(reward=None):
     global _REWARD
 
     playing_world = get_playing_world()
-    r = 0.0
+    r = 0.0  # accumulated reward
     is_terminal = False
     if reward is not None:
         _REWARD = reward
@@ -167,28 +167,28 @@ def compile_obs_dict(reward=None):
     #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
     # END: DEBUG
 
-    for observer in E2LObserver.GetRegisteredObservers():
+    for observer in MLOserver.GetRegisteredObservers():
         parent, obs_name = sanity_check_observer(observer, playing_world)
         if not parent:
             continue
         # the reward observer
-        elif obs_name == "_reward":
+        elif observer.ObserverType == 1:
             if len(observer.ObservedProperties) != 1:
                 return {"status": "error", "message": "Reward-observer {} has 0 or more than 1 property!".format(obs_name)}
             observed_prop = observer.ObservedProperties[0]
             prop_name = observed_prop.PropName
             if not parent.has_property(prop_name):
                 return {"status": "error", "message": "Reward-property {} is not a property of parent ({})!".format(prop_name, parent)}
-            r = parent.get_property(prop_name)[0]  # FOR NOW: use x-Location as reward (bad, but we need 20tab to add this functionality)
+            r = parent.get_property(prop_name)[0]  # FOR NOW: use x-Location as accumulated reward (bad, but we need 20tab to add this functionality)
         # the is_terminal observer
-        elif obs_name == "_is_terminal":
+        elif observer.ObserverType == 2:
             if len(observer.ObservedProperties) != 1:
                 return {"status": "error", "message": "IsTerminal-observer {} has 0 or more than 1 property!".format(obs_name)}
             observed_prop = observer.ObservedProperties[0]
             prop_name = observed_prop.PropName
             if not parent.has_property(prop_name):
                 return {"status": "error", "message": "IsTerminal-property {} is not a property of parent ({})!".format(prop_name, parent)}
-            is_terminal = (parent.get_property(prop_name)[0] > 0.0)  # FOR NOW: use Rotation: x > 0 as is_terminal signal
+            is_terminal = (parent.get_property(prop_name)[0] > 0.0)  # FOR NOW: use x-Location: x == 1.0? as is_terminal signal
         # normal (non-reward/non-is_terminal) observer
         else:
             # this observer returns a camera image
@@ -222,7 +222,7 @@ def compile_obs_dict(reward=None):
 
     # update global total reward counter
     prev_reward = _REWARD
-    _REWARD = r
+    _REWARD = r  # update global _REWARD counter
     message = {"status": "ok", "obs_dict": _OBS_DICT, "_reward": (r - prev_reward), "_is_terminal": is_terminal}
     return message
 
@@ -262,10 +262,10 @@ def get_spec():
 
     # build the observation_space descriptor
     observation_space_desc = {}
-    for observer in E2LObserver.GetRegisteredObservers():
+    for observer in MLObserver.GetRegisteredObservers():
         parent, obs_name = sanity_check_observer(observer, playing_world)
         # ignore reward observer and is-terminal observer
-        if not parent or obs_name == "_reward" or obs_name == "_is_terminal":
+        if not parent or observer.ObserverType > 0:  # reward or is_terminal Observer
             continue
 
         # ue.log("DEBUG: get_spec observer {}".format(obs_name))

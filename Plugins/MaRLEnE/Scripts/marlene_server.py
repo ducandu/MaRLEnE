@@ -25,7 +25,7 @@ import msgpack
 import msgpack_numpy as mnp
 
 import re
-import pydevd
+#import pydevd
 import sys
 
 

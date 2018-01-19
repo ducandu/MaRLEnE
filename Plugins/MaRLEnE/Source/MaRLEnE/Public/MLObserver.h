@@ -5,9 +5,12 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "Components/BillboardComponent.h"
+#if WITH_EDITOR
 #include "Editor/PropertyEditor/Public/IDetailCustomization.h"
 #include "Editor/PropertyEditor/Public/DetailCategoryBuilder.h"
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#endif
 #include "Engine/BlueprintGeneratedClass.h"
 #include "MLObserver.generated.h"
 
@@ -43,6 +46,7 @@ struct FMLPropertyItem
 	UClass *Class;
 };
 
+#if WITH_EDITOR
 class FMLObservedPropertyDetails : public IPropertyTypeCustomization
 {
 public:
@@ -69,6 +73,7 @@ protected:
 
 	bool ObservableProp(UProperty *Prop);
 };
+#endif
 
 
 UCLASS(ClassGroup = MaRLEnE, meta = (BlueprintSpawnableComponent), HideCategories(Mobility, Rendering, LOD, Collision, Physics, Activation, Cooking))

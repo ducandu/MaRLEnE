@@ -16,7 +16,7 @@
 	"Modules": [
 		{
 			"Name": "MaRLEnE",
-			"Type": "Developer",
+			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
 	]

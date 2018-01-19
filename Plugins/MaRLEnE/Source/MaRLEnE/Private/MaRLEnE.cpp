@@ -2,10 +2,13 @@
 
 #include "MaRLEnE.h"
 
+
+#if WITH_EDITOR
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
 #include "ISettingsContainer.h"
 #include "PropertyEditorModule.h"
+#endif
 
 #include "MaRLEnESettings.h"
 #include "MLObserver.h"
@@ -16,6 +19,7 @@ void FMaRLEnEModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 
+#if WITH_EDITOR
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		// Create the new category
@@ -33,28 +37,32 @@ void FMaRLEnEModule::StartupModule()
 		);
 	}
 
+
 	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
 	{
 
 		//Custom detail views
 		PropertyModule->RegisterCustomPropertyTypeLayout("MLObservedProperty", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMLObservedPropertyDetails::MakeInstance));
 	}
+#endif
 }
 
 void FMaRLEnEModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-
+#if WITH_EDITOR
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "MaRLEnE", "General");
 	}
 
+
 	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
 	{
 		PropertyModule->UnregisterCustomPropertyTypeLayout("MLObservedProperty");
 	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

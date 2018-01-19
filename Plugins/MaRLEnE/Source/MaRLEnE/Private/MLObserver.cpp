@@ -6,8 +6,8 @@
 
 #include "MLObserversManager.h"
 
-#include "DetailWidgetRow.h"
 
+#if WITH_EDITOR
 TSharedRef<IPropertyTypeCustomization> FMLObservedPropertyDetails::MakeInstance()
 {
 	return MakeShareable(new FMLObservedPropertyDetails);
@@ -147,6 +147,7 @@ bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 
 	return false;
 }
+#endif
 
 UBlueprintGeneratedClass *UMLObserver::GetBlueprintTemplate()
 {
@@ -161,6 +162,7 @@ UBlueprintGeneratedClass *UMLObserver::GetBlueprintTemplate()
 	return nullptr;
 }
 
+#if WITH_EDITOR
 void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
@@ -264,6 +266,7 @@ void FMLObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHan
 {
 	//Create further customization here
 }
+#endif
 
 
 // Sets default values for this component's properties
@@ -284,6 +287,7 @@ UMLObserver::UMLObserver()
 
 void UMLObserver::OnRegister()
 {
+#if WITH_EDITOR
 	AActor *Owner = GetOwner();
 	if (Owner && Owner->GetRootComponent() && !BillboardComponent)
 	{
@@ -295,8 +299,10 @@ void UMLObserver::OnRegister()
 		BillboardComponent->SetupAttachment(Owner->GetRootComponent());
 		BillboardComponent->RegisterComponent();
 		BillboardComponent->SetRelativeLocation(BillboardLocation);
+
 		BillboardComponent->SetEditorScale(BillboardScale);
 	}
+#endif
 
 	Super::OnRegister();
 }
@@ -341,7 +347,7 @@ void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
-
+#if WITH_EDITOR
 	if (BillboardComponent)
 	{
 		if (PropertyChangedEvent.GetPropertyName() == FName("BillboardLocation"))
@@ -357,5 +363,6 @@ void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChanged
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyEditorModule.NotifyCustomizationModuleChanged();
+#endif
 }
 

@@ -267,7 +267,11 @@ async def new_client_connected(reader, writer):
             break
         unpacker.feed(data)
         for message in unpacker:
-            response = manage_message(message, writer)
+            if not isinstance(message, dict):
+                response = {"status": "error", "message": "Unknown message type ({})!".format(type(message).__name__)}
+            else:
+                response = manage_message(message, writer)
+
             # write back immediately
             if response:
                 send_message(response, writer)

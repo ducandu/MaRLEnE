@@ -85,7 +85,7 @@ def sanity_check_observer(observer, playing_world):
     return observer.GetAttachParent(), obs_name
 
 
-def get_scene_capture_and_texture(parent, obs_name, width=84, height=84):
+def get_scene_capture_and_texture(parent, observer):
     """
     Adds a SceneCapture2DComponent to some parent camera object so we can capture the pixels for this camera view.
     Then captures the image, renders it on the render target of the scene capture and returns the image as a numpy
@@ -93,9 +93,7 @@ def get_scene_capture_and_texture(parent, obs_name, width=84, height=84):
 
     :param uobject parent: The parent camera/scene-capture actor/component to which the new SceneCapture2DComponent
         needs to be attached or for which the render target has to be created and/or returned.
-    :param str obs_name: The name of the observer component.
-    :param int width: The width (in px) to use for the render target.
-    :param int height: The height (in px) to use for the render target.
+    :param uobject observer: The MLObserver uobject.
     :return: numpy array containing the pixel values (0-255) of the captured image.
     :rtype: np.ndarray
     """
@@ -115,22 +113,25 @@ def get_scene_capture_and_texture(parent, obs_name, width=84, height=84):
             scene_capture.bCaptureOnMovement = False
     # error -> return nothing
     else:
-        raise RuntimeError("Observer {} has bScreenCapture set to true, but is not a child of either a Camera or a SceneCapture2D!".format(obs_name))
+        raise RuntimeError("Observer {} has bScreenCapture set to true, but is not a child of either a Camera or "
+                           "a SceneCapture2D!".format(observer.get_name()))
 
     if not texture:
-        # TODO: setup camera transform and options (greyscale, etc..)
-        texture = scene_capture.TextureTarget = ue.create_transient_texture_render_target2d(width, height)
+        # use MLObserver's width/height settings
+        texture = scene_capture.TextureTarget =\
+            ue.create_transient_texture_render_target2d(observer.Width or 84, observer.Height or 84)
         ue.log("DEBUG: scene capture is created in get_scene_image texture={}".format(scene_capture.TextureTarget))
 
     return scene_capture, texture
 
 
-def get_scene_capture_image(scene_capture, texture):
+def get_scene_capture_image(scene_capture, texture, gray_scale=False):
     """
     Takes a snapshot through a SceneCapture2DComponent and its Texture target and returns the image as a numpy array.
 
     :param uobject scene_capture: The SceneCapture2DComponent uobject.
     :param uobject texture: The TextureTarget uobject.
+    :param bool gray_scale: Whether to transform the image into gray-scale before returning.
     :return: numpy array containing the pixel values (0-255) of the captured image
     :rtype: np.ndarray
     """
@@ -141,6 +142,9 @@ def get_scene_capture_image(scene_capture, texture):
     byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data,[mipmap]?) instead
     np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
     img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]  # slice away alpha value
+    # do a simple dot product to get the gray-scaled image
+    if gray_scale:
+        img = np.dot(img, [0.299, 0.587, 0.114])
 
     return img
 
@@ -194,10 +198,10 @@ def compile_obs_dict(reward=None):
             # this observer returns a camera image
             if observer.bScreenCapture:
                 try:
-                    scene_capture, texture = get_scene_capture_and_texture(parent, obs_name)
+                    scene_capture, texture = get_scene_capture_and_texture(parent, observer)
                 except RuntimeError as e:
                     return {"status": "error", "message": "{}".format(e)}
-                img = get_scene_capture_image(scene_capture, texture)
+                img = get_scene_capture_image(scene_capture, texture, observer.bGrayscale)
                 _OBS_DICT[obs_name + "/camera"] = img
 
             for observed_prop in observer.ObservedProperties:
@@ -273,11 +277,13 @@ def get_spec():
         # this observer returns a camera image
         if observer.bScreenCapture:
             try:
-                _, texture = get_scene_capture_and_texture(parent, obs_name)
+                _, texture = get_scene_capture_and_texture(parent, observer)
             except RuntimeError as e:
                 return {"status": "error", "message": "{}".format(e)}
-            observation_space_desc[obs_name+"/camera"] = {"type": "IntBox", "shape": (texture.SizeX, texture.SizeY, 3),
-                                                          "min": 0, "max": 255}
+            observation_space_desc[obs_name+"/camera"] = {
+                "type": "IntBox",
+                "shape": (texture.SizeX, texture.SizeY) if observer.bGrayscale else (texture.SizeX, texture.SizeY, 3),
+                "min": 0, "max": 255}
 
         # go through non-camera/capture properties that need to be observed by this Observer
         for observed_prop in observer.ObservedProperties:

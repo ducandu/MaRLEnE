@@ -150,6 +150,6 @@
 		}
 	],
 	"TargetPlatforms": [
-		"Android"
+		"LinuxNoEditor"
 	]
 }

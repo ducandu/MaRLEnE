@@ -5,9 +5,12 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "Components/BillboardComponent.h"
+#if WITH_EDITOR
 #include "Editor/PropertyEditor/Public/IDetailCustomization.h"
 #include "Editor/PropertyEditor/Public/DetailCategoryBuilder.h"
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#endif
 #include "Engine/BlueprintGeneratedClass.h"
 #include "MLObserver.generated.h"
 
@@ -43,6 +46,7 @@ struct FMLPropertyItem
 	UClass *Class;
 };
 
+#if WITH_EDITOR
 class FMLObservedPropertyDetails : public IPropertyTypeCustomization
 {
 public:
@@ -67,8 +71,9 @@ protected:
 	FMLObservedProperty *ObservedProperty;
 	UStructProperty *SProp;
 
-	bool ObservableProp(UProperty *Prop);
+	bool ObservableProp(UProperty *Prop, bool bShowPrivate);
 };
+#endif
 
 
 UCLASS(ClassGroup = MaRLEnE, meta = (BlueprintSpawnableComponent), HideCategories(Mobility, Rendering, LOD, Collision, Physics, Activation, Cooking))
@@ -88,9 +93,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Billboard)
 	FVector BillboardLocation;
 
-	UPROPERTY(EditAnywhere, Category = Billboard)
-	float BillboardScale;
-
 	UPROPERTY(EditAnywhere)
 	bool bScreenCapture;
 
@@ -107,7 +109,22 @@ public:
 	EObserverType ObserverType;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveLocation;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveRotation;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveScale;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveVisibility;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	bool bShowInheritedVariables;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bShowPrivateVariables;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FMLObservedProperty> ObservedProperties;

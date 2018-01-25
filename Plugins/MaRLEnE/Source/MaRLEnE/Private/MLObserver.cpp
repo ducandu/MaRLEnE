@@ -6,8 +6,9 @@
 
 #include "MLObserversManager.h"
 
-#include "DetailWidgetRow.h"
 
+
+#if WITH_EDITOR
 TSharedRef<IPropertyTypeCustomization> FMLObservedPropertyDetails::MakeInstance()
 {
 	return MakeShareable(new FMLObservedPropertyDetails);
@@ -51,72 +52,20 @@ ECheckBoxState FMLObservedPropertyDetails::GetSelectedPropEnabled() const
 }
 
 
-bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
+bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop, bool bShowPrivate)
 {
 
-
-
-	if (Prop->GetName() == "RelativeLocation")
+	if (!bShowPrivate)
 	{
-
-		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
+		if (Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 		{
-			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
-			{
-				if (SSProp == TBaseStructure<FVector>::Get())
-					return true;
-			}
-
+			return false;
 		}
 	}
 
-	if (Prop->GetName() == "RelativeRotation")
-	{
-
-		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
-		{
-			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
-			{
-				if (SSProp == TBaseStructure<FRotator>::Get())
-					return true;
-			}
-
-		}
-	}
-
-	if (Prop->GetName() == "RelativeScale3D")
-	{
-
-		if (UStructProperty *SProp = Cast<UStructProperty>(Prop))
-		{
-			if (UScriptStruct *SSProp = Cast<UScriptStruct>(SProp->Struct))
-			{
-				if (SSProp == TBaseStructure<FVector>::Get())
-					return true;
-			}
-
-		}
-	}
-
-	if (Prop->GetName() == "bVisible")
-	{
-
-		if (UBoolProperty *SProp = Cast<UBoolProperty>(Prop))
-		{
-			return true;
-
-		}
-	}
-
-	if (!Prop->HasAllPropertyFlags(CPF_DisableEditOnInstance))
-	{
-		return true;
-	}
-
-	/*
 	if (UArrayProperty *PArray = Cast<UArrayProperty>(Prop))
 	{
-		return ObservableProp(PArray->Inner);
+		return ObservableProp(PArray->Inner, bShowPrivate);
 	}
 
 	if (Prop->IsA<UBoolProperty>())
@@ -143,10 +92,11 @@ bool FMLObservedPropertyDetails::ObservableProp(UProperty *Prop)
 		}
 
 	}
-	*/
 
 	return false;
 }
+
+#endif
 
 UBlueprintGeneratedClass *UMLObserver::GetBlueprintTemplate()
 {
@@ -161,6 +111,7 @@ UBlueprintGeneratedClass *UMLObserver::GetBlueprintTemplate()
 	return nullptr;
 }
 
+#if WITH_EDITOR
 void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 
@@ -218,7 +169,7 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 
 	for (TFieldIterator<UProperty> PropIt(OwnerClass, SuperFlags); PropIt; ++PropIt)
 	{
-		if (!ObservableProp(*PropIt))
+		if (!ObservableProp(*PropIt, Observer->bShowPrivateVariables))
 		{
 			continue;
 		}
@@ -242,21 +193,21 @@ void FMLObservedPropertyDetails::CustomizeHeader(TSharedRef<class IPropertyHandl
 		[
 			SNew(SComboBox<TSharedPtr<FMLPropertyItem>>)
 			.OptionsSource(&ParentProperties)
-			.OnGenerateWidget(this, &FMLObservedPropertyDetails::OnGenerateWidget)
-			.OnSelectionChanged(this, &FMLObservedPropertyDetails::OnSelectionChanged)
-			.InitiallySelectedItem(CurrentItem)
-			.Content()
-			[
-				SNew(STextBlock).Text(this, &FMLObservedPropertyDetails::GetSelectedPropName)
-			]
+		.OnGenerateWidget(this, &FMLObservedPropertyDetails::OnGenerateWidget)
+		.OnSelectionChanged(this, &FMLObservedPropertyDetails::OnSelectionChanged)
+		.InitiallySelectedItem(CurrentItem)
+		.Content()
+		[
+			SNew(STextBlock).Text(this, &FMLObservedPropertyDetails::GetSelectedPropName)
+		]
 		]
 	.ValueContent()
 		[
-			
-				SNew(SCheckBox)
-					.IsChecked(this, &FMLObservedPropertyDetails::GetSelectedPropEnabled)
-					.OnCheckStateChanged(this, &FMLObservedPropertyDetails::PropCheckChanged)
-			
+
+			SNew(SCheckBox)
+			.IsChecked(this, &FMLObservedPropertyDetails::GetSelectedPropEnabled)
+		.OnCheckStateChanged(this, &FMLObservedPropertyDetails::PropCheckChanged)
+
 		];
 }
 
@@ -264,6 +215,7 @@ void FMLObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHan
 {
 	//Create further customization here
 }
+#endif
 
 
 // Sets default values for this component's properties
@@ -279,11 +231,11 @@ UMLObserver::UMLObserver()
 	// ...
 	bEnabled = true;
 	BillboardComponent = nullptr;
-	BillboardScale = 1;
 }
 
 void UMLObserver::OnRegister()
 {
+#if WITH_EDITOR
 	AActor *Owner = GetOwner();
 	if (Owner && Owner->GetRootComponent() && !BillboardComponent)
 	{
@@ -295,8 +247,8 @@ void UMLObserver::OnRegister()
 		BillboardComponent->SetupAttachment(Owner->GetRootComponent());
 		BillboardComponent->RegisterComponent();
 		BillboardComponent->SetRelativeLocation(BillboardLocation);
-		BillboardComponent->SetEditorScale(BillboardScale);
 	}
+#endif
 
 	Super::OnRegister();
 }
@@ -341,21 +293,17 @@ void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
+#if WITH_EDITOR
 
 	if (BillboardComponent)
 	{
-		if (PropertyChangedEvent.GetPropertyName() == FName("BillboardLocation"))
-		{
-			BillboardComponent->SetRelativeLocation(BillboardLocation);
-		}
 
-		else if (PropertyChangedEvent.GetPropertyName() == FName("BillboardScale"))
-		{
-			BillboardComponent->SetEditorScale(BillboardScale);
-		}
+		BillboardComponent->SetRelativeLocation(BillboardLocation);
+
 	}
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyEditorModule.NotifyCustomizationModuleChanged();
+#endif
 }
 

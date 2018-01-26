@@ -2,7 +2,6 @@
 
 #include "MaRLEnE.h"
 
-
 #if WITH_EDITOR
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
@@ -37,7 +36,6 @@ void FMaRLEnEModule::StartupModule()
 		);
 	}
 
-
 	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
 	{
 
@@ -51,12 +49,12 @@ void FMaRLEnEModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+
 #if WITH_EDITOR
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "MaRLEnE", "General");
 	}
-
 
 	if (FPropertyEditorModule *PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
 	{

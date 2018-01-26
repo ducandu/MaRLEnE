@@ -71,7 +71,7 @@ protected:
 	FMLObservedProperty *ObservedProperty;
 	UStructProperty *SProp;
 
-	bool ObservableProp(UProperty *Prop);
+	bool ObservableProp(UProperty *Prop, bool bShowPrivate);
 };
 #endif
 
@@ -93,9 +93,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Billboard)
 	FVector BillboardLocation;
 
-	UPROPERTY(EditAnywhere, Category = Billboard)
-	float BillboardScale;
-
 	UPROPERTY(EditAnywhere)
 	bool bScreenCapture;
 
@@ -112,7 +109,22 @@ public:
 	EObserverType ObserverType;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveLocation;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveRotation;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveScale;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bObserveVisibility;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	bool bShowInheritedVariables;
+
+	UPROPERTY(EditAnywhere, Category = ObservedProperties)
+	bool bShowPrivateVariables;
 
 	UPROPERTY(EditAnywhere, Category = ObservedProperties)
 	TArray<FMLObservedProperty> ObservedProperties;

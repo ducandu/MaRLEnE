@@ -261,9 +261,14 @@ void UMLObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
 	if (BillboardComponent)
 		BillboardComponent->DestroyComponent();
 
+
+
+}
+
+UMLObserver::~UMLObserver()
+{
 	// unregister from the manager
 	MLObserversManager::UnregisterObserver(this);
-
 }
 
 TArray<UMLObserver *> UMLObserver::GetRegisteredObservers()

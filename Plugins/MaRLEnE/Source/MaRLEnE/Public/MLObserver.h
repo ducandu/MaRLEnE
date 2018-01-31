@@ -84,6 +84,7 @@ class MARLENE_API UMLObserver : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UMLObserver();
+	~UMLObserver();
 	void OnRegister() override;
 	void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 

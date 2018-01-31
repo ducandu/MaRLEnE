@@ -2,4 +2,10 @@
 # - place imports here to start our modules
 
 import marlene_server
+import unreal_engine as ue
+
+# load the GeneralProjjectSettings class
+# (could be that classes are not loaded yet when ue_site (this script) is executed)
+ue.load_class("/Script/EngineSettings.GeneralProjectSettings")
+
 

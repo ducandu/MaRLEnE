@@ -1,5 +1,7 @@
 #!/bin/sh
 
+echo "GAME=$GAME"
+
 cd /home/ue4/marlene
 git pull
 cd ../UnrealEnginePython

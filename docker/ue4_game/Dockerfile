@@ -3,7 +3,7 @@
 
 # provide build-args:
 # game=[the project's name, e.g. AlienInvaders (default)]
-# base_img=[the base image to use: `ue4` for initial build, or `ue4_alien` for an already built game]
+# base_img=[the base image to use: `ue4` for initial build, or `ue4_alien_invaders` for an already built game]
 
 ARG base_img=ue4
 
@@ -11,8 +11,6 @@ FROM ducandu/$base_img
 
 USER ue4
 WORKDIR /home/ue4
-
-RUN echo " abc"
 
 # default game; override this via `--build-arg game=` on `docker build` command line
 ARG base_img=ue4

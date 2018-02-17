@@ -10,7 +10,8 @@
 """
 
 import unreal_engine as ue
-from unreal_engine.classes import MLObserver, GameplayStatics, CameraComponent, InputSettings, SceneCaptureComponent2D
+from unreal_engine.classes import MLObserver, GameplayStatics, GeneralProjectSettings, CameraComponent, InputSettings, SceneCaptureComponent2D
+import unreal_engine.classes
 import numpy as np
 import re
 
@@ -82,16 +83,16 @@ def sanity_check_observer(observer, playing_world):
         # ue.log("Observer {} lives in non-live world ({}) (playing-world={})".format(obs_name, observer.get_world(), playing_world))
         return None, None
     # get the observer's parent and name
-    return observer.GetAttachParent(), obs_name
+    return observer.get_owner(), obs_name  # observer.GetAttachParent(), obs_name
 
 
-def get_scene_capture_and_texture(parent, observer):
+def get_scene_capture_and_texture(owner, observer):
     """
     Adds a SceneCapture2DComponent to some parent camera object so we can capture the pixels for this camera view.
     Then captures the image, renders it on the render target of the scene capture and returns the image as a numpy
     array.
 
-    :param uobject parent: The parent camera/scene-capture actor/component to which the new SceneCapture2DComponent
+    :param uobject owner: The owner camera/scene-capture actor to which the new SceneCapture2DComponent
         needs to be attached or for which the render target has to be created and/or returned.
     :param uobject observer: The MLObserver uobject.
     :return: numpy array containing the pixel values (0-255) of the captured image.
@@ -100,21 +101,27 @@ def get_scene_capture_and_texture(parent, observer):
 
     texture = None  # the texture object to use for getting the image
 
-    if parent.is_a(SceneCaptureComponent2D):
-        scene_capture = parent
-        texture = parent.TextureTarget
-    elif parent.is_a(CameraComponent):
-        scene_capture = get_child_component(parent, SceneCaptureComponent2D)
-        if scene_capture:
-            texture = scene_capture.TextureTarget
-        else:
-            scene_capture = parent.get_owner().add_actor_component(SceneCaptureComponent2D, "MaRLEnEScreenCapture", parent)
-            scene_capture.bCaptureEveryFrame = False
-            scene_capture.bCaptureOnMovement = False
-    # error -> return nothing
+    # look for first SceneCapture2DComponent
+    scene_captures = owner.get_actor_components_by_type(SceneCaptureComponent2D)
+    if len(scene_captures) > 0:
+        scene_capture = scene_captures[0]
+        texture = scene_capture.TextureTarget
+    # then CameraComponent
     else:
-        raise RuntimeError("Observer {} has bScreenCapture set to true, but is not a child of either a Camera or "
-                           "a SceneCapture2D!".format(observer.get_name()))
+        cameras = owner.get_actor_components_by_type(CameraComponent)
+        if len(cameras) > 0:
+            camera = cameras[0]
+            scene_capture = get_child_component(camera, SceneCaptureComponent2D)
+            if scene_capture:
+                texture = scene_capture.TextureTarget
+            else:
+                scene_capture = owner.add_actor_component(SceneCaptureComponent2D, "MaRLEnEScreenCapture", camera)
+                scene_capture.bCaptureEveryFrame = False
+                scene_capture.bCaptureOnMovement = False
+        # error -> return nothing
+        else:
+            raise RuntimeError("Observer {} has bScreenCapture set to true, but its owner does not possess either a "
+                               "Camera or a SceneCapture2D!".format(observer.get_name()))
 
     if not texture:
         # use MLObserver's width/height settings
@@ -141,10 +148,19 @@ def get_scene_capture_image(scene_capture, texture, gray_scale=False):
     # TODO: copy the bytes into the same memory location each time to avoid garbage collection
     byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data,[mipmap]?) instead
     np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
-    img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]  # slice away alpha value
+
+    # DEBUG
+    #pydevd.settrace("192.168.2.107", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
+    # END: DEBUG
+
     # do a simple dot product to get the gray-scaled image
     if gray_scale:
-        img = np.dot(img, [0.299, 0.587, 0.114])
+        img = np.dot(np_array.reshape((texture.SizeX * texture.SizeY, 4))[:, :3],
+                     np.matrix([0.299, 0.587, 0.114]).T).astype(np.uint8)  # needs to be cast back to uint8!
+        img = img.reshape((texture.SizeX, texture.SizeY))
+    # no gray-scale: only slice away alpha value
+    else:
+        img = np_array.reshape((texture.SizeX, texture.SizeY, 4))[:, :, :3]
 
     return img
 
@@ -171,9 +187,9 @@ def compile_obs_dict(reward=None):
     #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
     # END: DEBUG
 
-    for observer in MLOserver.GetRegisteredObservers():
-        parent, obs_name = sanity_check_observer(observer, playing_world)
-        if not parent:
+    for observer in MLObserver.GetRegisteredObservers():
+        owner, obs_name = sanity_check_observer(observer, playing_world)
+        if not owner:
             continue
         # the reward observer
         elif observer.ObserverType == 1:
@@ -181,24 +197,24 @@ def compile_obs_dict(reward=None):
                 return {"status": "error", "message": "Reward-observer {} has 0 or more than 1 property!".format(obs_name)}
             observed_prop = observer.ObservedProperties[0]
             prop_name = observed_prop.PropName
-            if not parent.has_property(prop_name):
-                return {"status": "error", "message": "Reward-property {} is not a property of parent ({})!".format(prop_name, parent)}
-            r = parent.get_property(prop_name)[0]  # FOR NOW: use x-Location as accumulated reward (bad, but we need 20tab to add this functionality)
+            if not owner.has_property(prop_name):
+                return {"status": "error", "message": "Reward-property {} is not a property of owner ({})!".format(prop_name, owner)}
+            r = owner.get_property(prop_name)
         # the is_terminal observer
         elif observer.ObserverType == 2:
             if len(observer.ObservedProperties) != 1:
                 return {"status": "error", "message": "IsTerminal-observer {} has 0 or more than 1 property!".format(obs_name)}
             observed_prop = observer.ObservedProperties[0]
             prop_name = observed_prop.PropName
-            if not parent.has_property(prop_name):
-                return {"status": "error", "message": "IsTerminal-property {} is not a property of parent ({})!".format(prop_name, parent)}
-            is_terminal = (parent.get_property(prop_name)[0] > 0.0)  # FOR NOW: use x-Location: x == 1.0? as is_terminal signal
+            if not owner.has_property(prop_name):
+                return {"status": "error", "message": "IsTerminal-property {} is not a property of owner ({})!".format(prop_name, owner)}
+            is_terminal = owner.get_property(prop_name)
         # normal (non-reward/non-is_terminal) observer
         else:
             # this observer returns a camera image
             if observer.bScreenCapture:
                 try:
-                    scene_capture, texture = get_scene_capture_and_texture(parent, observer)
+                    scene_capture, texture = get_scene_capture_and_texture(owner, observer)
                 except RuntimeError as e:
                     return {"status": "error", "message": "{}".format(e)}
                 img = get_scene_capture_image(scene_capture, texture, observer.bGrayscale)
@@ -208,10 +224,10 @@ def compile_obs_dict(reward=None):
                 if not observed_prop.bEnabled:
                     continue
                 prop_name = observed_prop.PropName
-                if not parent.has_property(prop_name):
+                if not owner.has_property(prop_name):
                     continue
 
-                prop = parent.get_property(prop_name)
+                prop = owner.get_property(prop_name)
                 type_ = type(prop)
                 if type_ == ue.FVector or type_ == ue.FRotator:
                     value = (prop[0], prop[1], prop[2])
@@ -267,9 +283,9 @@ def get_spec():
     # build the observation_space descriptor
     observation_space_desc = {}
     for observer in MLObserver.GetRegisteredObservers():
-        parent, obs_name = sanity_check_observer(observer, playing_world)
+        owner, obs_name = sanity_check_observer(observer, playing_world)
         # ignore reward observer and is-terminal observer
-        if not parent or observer.ObserverType > 0:  # reward or is_terminal Observer
+        if not owner or observer.ObserverType > 0:  # reward or is_terminal Observer
             continue
 
         # ue.log("DEBUG: get_spec observer {}".format(obs_name))
@@ -277,7 +293,7 @@ def get_spec():
         # this observer returns a camera image
         if observer.bScreenCapture:
             try:
-                _, texture = get_scene_capture_and_texture(parent, observer)
+                _, texture = get_scene_capture_and_texture(owner, observer)
             except RuntimeError as e:
                 return {"status": "error", "message": "{}".format(e)}
             observation_space_desc[obs_name+"/camera"] = {
@@ -290,10 +306,10 @@ def get_spec():
             if not observed_prop.bEnabled:
                 continue
             prop_name = observed_prop.PropName
-            if not parent.has_property(prop_name):
+            if not owner.has_property(prop_name):
                 continue
 
-            type_ = type(parent.get_property(prop_name))
+            type_ = type(owner.get_property(prop_name))
             if type_ == ue.FVector or type_ == ue.FRotator:
                 desc = {"type": "Continuous", "shape": (3,)}  # no min/max -> will be derived from samples
             elif type_ == ue.UObject:

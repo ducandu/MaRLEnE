@@ -40,6 +40,6 @@ RUN mkdir -p ${GAME}/Content/Scripts/
 RUN cp -u ${GAME}/Plugins/MaRLEnE/Scripts/* ${GAME}/Content/Scripts/.
 
 # build and cook the game
-#RUN Engine/Build/BatchFiles/RunUAT.sh BuildCookRun -project=${GAME}/${GAME}.uproject -nop4 -build -cook -compressed -stage -platform=Linux -clientconfig=Development -pak -archive -archivedirectory="${GAME}/Build" -utf8output
+RUN Engine/Build/BatchFiles/RunUAT.sh BuildCookRun -project=${GAME}/${GAME}.uproject -nop4 -build -cook -compressed -stage -platform=Linux -clientconfig=Development -pak -archive -archivedirectory="${GAME}/Build" -utf8output
 
 CMD ["bash"]

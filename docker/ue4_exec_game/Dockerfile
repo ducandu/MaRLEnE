@@ -1,9 +1,9 @@
 # to build a final game image that only contains the cooked game executable
 
-ARG base_img=ue4_alien
+ARG base_img=ducandu/ue4_alien_invaders
 
 # the base image to copy from
-FROM ducandu/$base_img AS game_img
+FROM $base_img AS game_img
 
 # new container based on Ubuntu
 FROM ubuntu:xenial
@@ -32,13 +32,13 @@ COPY --from=game_img --chown=ue4:ue4 /home/ue4/UnrealEngine/${GAME}/Build/LinuxN
 RUN mkdir -p AlienInvaders/Content/Scripts
 COPY --from=game_img --chown=ue4:ue4 /home/ue4/UnrealEngine/${GAME}/Content/Scripts ${GAME}/Content/Scripts/
 
-# add to PYTHONPATH: Games/[the GAME]/Content/Scripts to env
+# add to PYTHONPATH: Games/[the GAME]/Content/Scripts
 ENV PYTHONPATH=/home/ue4/Games/${GAME}/Content/Scripts
 
 # start the game automatically when running this container
 CMD /home/ue4/Games/${GAME}.sh -NullRHI -nosound
 
-# run this container with
-# `docker run -d --name aliens ducandu/ue4_[game]_final`
+# run this container (detached) and with port 6025 open for listening with (no need for --network option!!):
+# `docker run -it -d --name [e.g aliens] -p 6025:6025 ducandu/ue4_[game]_final`
 # login to this container via
 # `docker exec -ti [container name] bash`

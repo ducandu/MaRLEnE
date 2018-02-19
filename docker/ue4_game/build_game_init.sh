@@ -1,6 +1,9 @@
 #!/bin/sh
 
 echo "GAME=$GAME"
+echo "UE4PYTHON_TAG=$UE4PYTHON_TAG"
+
+cd
 
 mkdir -p UnrealEngine/${GAME}/Plugins
 
@@ -11,5 +14,8 @@ cp -r marlene/examples/UE4Games/${GAME} UnrealEngine/.
 cp -r marlene/Plugins/MaRLEnE UnrealEngine/${GAME}/Plugins/.
 
 git clone https://github.com/20tab/UnrealEnginePython.git
+cd UnrealEnginePython
+git checkout tags/${UE4PYTHON_TAG}
+cd ../
 cp -r UnrealEnginePython UnrealEngine/${GAME}/Plugins/.
 

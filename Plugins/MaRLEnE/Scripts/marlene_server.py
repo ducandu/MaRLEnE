@@ -257,15 +257,31 @@ def send_message(message, writer):
 # this is called whenever a new client connects
 async def new_client_connected(reader, writer):
     name = writer.get_extra_info("peername")
-    ue.log("new client connection from {0}".format(name))
-    unpacker = msgpack.Unpacker()
+    ue.log("New client connection from {0}".format(name))
+    unpacker = msgpack.Unpacker(encoding="utf-8")
     while True:
         # wait for a line
-        # TODO: what if incoming command is longer than 8192? -> Add len field to beginning of messages (in both directions)
-        data = await reader.read(8192)
+        data = await reader.read(8)  # read the num-byte header
         if not data:
             break
-        unpacker.feed(data)
+
+        # Read the incoming message.
+        orig_len = int(data)
+        received_len = 0
+        while True:
+            data = reader.read(min(orig_len - received_len, 8192))
+            if not data:
+                send_message({"status": "error",
+                              "message": "No data of len {} received by socket.recv in call to method `recv`!".
+                             format(orig_len - received_len)}, writer)
+            data_len = len(data)
+            received_len += data_len
+            unpacker.feed(data)
+
+            if received_len == orig_len:
+                break
+
+        # Get the data.
         for message in unpacker:
             if not isinstance(message, dict):
                 response = {"status": "error", "message": "Unknown message type ({})!".format(type(message).__name__)}
@@ -277,7 +293,7 @@ async def new_client_connected(reader, writer):
                 send_message(response, writer)
             # async calls -> do nothing here (async will handle it)
 
-    ue.log('client {0} disconnected'.format(name))
+    ue.log('Client {0} disconnected'.format(name))
 
 
 # this spawns the server

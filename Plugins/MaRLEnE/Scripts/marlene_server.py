@@ -300,12 +300,15 @@ async def new_client_connected(reader, writer):
 # this spawns the server
 # the try/finally trick allows for gentle shutdown of the server
 async def spawn_server(host, port):
+    co_routine = None
     try:
-        coro = await asyncio.start_server(new_client_connected, host, port)
-        ue.log('tcp server spawned on {0}:{1}'.format(host, port))
-        await coro.wait_closed()
+        ue.log('Trying to start listen server on {0}:{1}.'.format(host, port))
+        co_routine = await asyncio.start_server(new_client_connected, host, port)
+        ue.log('Server spawned.')
+        await co_routine.wait_closed()
     finally:
-        coro.close()
+        if co_routine:
+            co_routine.close()
         ue.log('tcp server ended')
 
     
@@ -326,4 +329,5 @@ if not settings.Address:
     settings.Address = "localhost"
     ue.log("No address set: Using default of {}.".format(settings.Address))
 
+ue.log("Address={} Port={}.".format(settings.Address, settings.Port))
 asyncio.ensure_future(spawn_server(settings.Address, settings.Port + port_add))

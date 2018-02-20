@@ -11,7 +11,7 @@ FROM ubuntu:xenial
 ARG game=AlienInvaders
 
 # install minimal python tools to be able to run plugin UnrealEnginePython
-RUN apt-get update -y && apt-get install -y --no-install-recommends python3 python3-dev python3-pip python3-setuptools
+RUN apt-get update -y && apt-get install -y --no-install-recommends python3 python3-dev python3-pip python3-setuptools sudo vim
 RUN pip3 install numpy msgpack msgpack-numpy pydevd
 
 # add the game user

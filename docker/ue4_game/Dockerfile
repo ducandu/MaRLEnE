@@ -26,7 +26,6 @@ RUN dos2unix build_game_init.sh
 RUN dos2unix build_game_incr.sh
 RUN chmod 0777 build_game_init.sh && chmod 0777 build_game_incr.sh
 RUN if [ "${BASE_IMG}" = "ducandu/ue4" ] ; then /bin/sh ./build_game_init.sh ; else /bin/sh ./build_game_incr.sh ; fi
-
 WORKDIR UnrealEngine
 ## Modify the UnrealEnginePython build cs file to add the python lib and include paths
 # not necessary as ubuntu is covered by the default values in UEPython build cs

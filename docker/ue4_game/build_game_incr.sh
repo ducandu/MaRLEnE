@@ -10,7 +10,6 @@ cd ../UnrealEnginePython
 git checkout tags/${UE4PYTHON_TAG}
 git pull
 
-
 # copy (update; only newer files) the example game and the two plugins into UnrealEngine
 cd
 cp -r -u marlene/examples/UE4Games/${GAME} UnrealEngine/.

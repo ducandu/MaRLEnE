@@ -284,8 +284,8 @@ def get_spec():
     observation_space_desc = {}
     for observer in MLObserver.GetRegisteredObservers():
         owner, obs_name = sanity_check_observer(observer, playing_world)
-        # ignore reward observer and is-terminal observer
-        if not owner or observer.ObserverType > 0:  # reward or is_terminal Observer
+        # ignore reward observer (ObserverType=1) and is-terminal observer (ObserverType=2)
+        if not owner or observer.ObserverType > 0:
             continue
 
         # ue.log("DEBUG: get_spec observer {}".format(obs_name))

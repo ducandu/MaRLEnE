@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo "init build (from scratch)"
 echo "GAME=$GAME"
 echo "UE4PYTHON_TAG=$UE4PYTHON_TAG"
 

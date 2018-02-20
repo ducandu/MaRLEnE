@@ -269,7 +269,7 @@ async def new_client_connected(reader, writer):
         orig_len = int(data)
         received_len = 0
         while True:
-            data = reader.read(min(orig_len - received_len, 8192))
+            data = await reader.read(min(orig_len - received_len, 8192))
             if not data:
                 send_message({"status": "error",
                               "message": "No data of len {} received by socket.recv in call to method `recv`!".
@@ -293,7 +293,7 @@ async def new_client_connected(reader, writer):
                 send_message(response, writer)
             # async calls -> do nothing here (async will handle it)
 
-    ue.log('Client {0} disconnected'.format(name))
+    ue.log("Client {0} disconnected".format(name))
 
 
 # this spawns the server

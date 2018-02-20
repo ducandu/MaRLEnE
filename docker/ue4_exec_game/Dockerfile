@@ -1,6 +1,6 @@
 # to build a final game image that only contains the cooked game executable
 
-ARG base_img=ducandu/ue4_alien_invaders
+ARG base_img=ducandu/ue4_alien_invaders:build
 
 # the base image to copy from
 FROM $base_img AS game_img

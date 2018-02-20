@@ -6,5 +6,6 @@ import unreal_engine as ue
 # load the GeneralProjjectSettings class
 # (could be that classes are not loaded yet when ue_site (this script) is executed)
 ue.load_class("/Script/EngineSettings.GeneralProjectSettings")
+ue.load_class("/Script/MaRLEnE.MLObserver")
 
 import marlene_server

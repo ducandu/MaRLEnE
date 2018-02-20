@@ -3,7 +3,7 @@
 
 # provide build-args:
 # game=[the project's name, e.g. AlienInvaders (default)]
-# base_img=[the base image to use: `ue4` for initial build, or `ue4_alien_invaders` for an already built game]
+# base_img=[the base image to use: `ducandu/ue4` for initial build, or `ducandu/ue4_[some_game]:build` for a previously built game]
 
 ARG base_img=ducandu/ue4
 

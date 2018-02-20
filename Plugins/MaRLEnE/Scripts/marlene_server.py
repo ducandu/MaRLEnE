@@ -20,6 +20,7 @@ import server_utils as util
 from unreal_engine.classes import MaRLEnESettings, GameplayStatics, InputSettings
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
+import os
 
 import msgpack
 import msgpack_numpy as mnp
@@ -312,10 +313,17 @@ async def spawn_server(host, port):
 Main Program: Get UE4 settings and start listening on port for incoming connections.
 """
 
+# the number to add to our listen port (in case we have many remote-game-envs in one network
+port_add = 0
+if "MARLENE_PORT_ADD" in os.environ:
+    port_add = int(os.environ["MARLENE_PORT_ADD"])
+
 settings = ue.get_mutable_default(MaRLEnESettings)
-if settings.Address and settings.Port:
-    asyncio.ensure_future(spawn_server(settings.Address, settings.Port))
-else:
-    ue.log("No settings for either address ({}) or port ({})!".format(settings.Address, settings.Port))
+if not settings.Port:
+    settings.Port = 6025
+    ue.log("No port set: Using default of {}.".format(settings.Port))
+if not settings.Address:
+    settings.Address = "localhost"
+    ue.log("No address set: Using default of {}.".format(settings.Address))
 
-
+asyncio.ensure_future(spawn_server(settings.Address, settings.Port + port_add))

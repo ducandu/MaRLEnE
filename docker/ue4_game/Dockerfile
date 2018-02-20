@@ -37,7 +37,9 @@ WORKDIR UnrealEngine
 
 # - copy necessary scripts from the plugin to the game's content folder
 RUN mkdir -p ${GAME}/Content/Scripts/
-RUN cp -u ${GAME}/Plugins/MaRLEnE/Scripts/* ${GAME}/Content/Scripts/.
+# force-copy (no -u flag), because some Scripts may exist in the examples/[some Game] folder of MaRLEnE with
+# the same age as the scripts in MaRLEnE/Scripts/
+RUN cp ${GAME}/Plugins/MaRLEnE/Scripts/* ${GAME}/Content/Scripts/.
 
 # build and cook the game
 RUN Engine/Build/BatchFiles/RunUAT.sh BuildCookRun -project=${GAME}/${GAME}.uproject -nop4 -build -cook -compressed -stage -platform=Linux -clientconfig=Development -pak -archive -archivedirectory="${GAME}/Build" -utf8output

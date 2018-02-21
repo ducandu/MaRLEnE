@@ -222,8 +222,6 @@ void FMLObservedPropertyDetails::CustomizeChildren(TSharedRef<class IPropertyHan
 UMLObserver::UMLObserver()
 {
 
-	MLObserversManager::RegisterObserver(this);
-
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
@@ -231,6 +229,11 @@ UMLObserver::UMLObserver()
 	// ...
 	bEnabled = true;
 	BillboardComponent = nullptr;
+}
+
+void UMLObserver::InitializeComponent()
+{
+	MLObserversManager::RegisterObserver(this);
 }
 
 void UMLObserver::OnRegister()

@@ -6,8 +6,10 @@ echo "UE4PYTHON_TAG=$UE4PYTHON_TAG"
 
 cd /home/ue4/marlene
 git pull origin master
+
 cd ../UnrealEnginePython
-git checkout tags/${UE4PYTHON_TAG}
+git fetch
+if [ -z "${UE4PYTHON_TAG}" ] ; then git checkout master ; echo "no tag"; else git checkout tags/${UE4PYTHON_TAG} ; echo "tag"; fi
 git pull
 
 # copy (update; only newer files) the example game and the two plugins into UnrealEngine

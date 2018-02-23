@@ -16,7 +16,7 @@ cp -r marlene/Plugins/MaRLEnE UnrealEngine/${GAME}/Plugins/.
 
 git clone https://github.com/20tab/UnrealEnginePython.git
 cd UnrealEnginePython
-git checkout tags/${UE4PYTHON_TAG}
+if [ -z "${UE4PYTHON_TAG}" ] ; then git checkout master ; else git checkout tags/${UE4PYTHON_TAG} ; fi
 cd ../
 cp -r UnrealEnginePython UnrealEngine/${GAME}/Plugins/.
 

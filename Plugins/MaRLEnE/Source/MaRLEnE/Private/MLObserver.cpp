@@ -233,6 +233,7 @@ UMLObserver::UMLObserver()
 
 void UMLObserver::InitializeComponent()
 {
+	Super::InitializeComponent();
 	MLObserversManager::RegisterObserver(this);
 }
 
@@ -286,7 +287,7 @@ void UMLObserver::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-
+	//MLObserversManager::RegisterObserver(this);
 }
 
 

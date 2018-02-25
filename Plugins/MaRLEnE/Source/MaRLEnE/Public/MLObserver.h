@@ -135,6 +135,8 @@ public:
 
 	void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent);
 
+	
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -145,7 +147,7 @@ protected:
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual void InitializeComponent() override;
+	virtual void PostInitProperties() override;
 
 	UBlueprintGeneratedClass *GetBlueprintTemplate();
 };

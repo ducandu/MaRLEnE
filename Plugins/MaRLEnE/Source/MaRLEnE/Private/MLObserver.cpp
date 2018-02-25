@@ -231,10 +231,11 @@ UMLObserver::UMLObserver()
 	BillboardComponent = nullptr;
 }
 
-void UMLObserver::InitializeComponent()
+void UMLObserver::PostInitProperties()
 {
-	Super::InitializeComponent();
+	Super::PostInitProperties();
 	MLObserversManager::RegisterObserver(this);
+	UE_LOG(LogTemp, Warning, TEXT("Registered Observer at %p (owner %s)"), this, GetOwner() ? *GetOwner()->GetName() : nullptr);
 }
 
 void UMLObserver::OnRegister()
@@ -272,6 +273,7 @@ void UMLObserver::OnComponentDestroyed(bool bDestroyingHierarchy)
 UMLObserver::~UMLObserver()
 {
 	// unregister from the manager
+	UE_LOG(LogTemp, Warning, TEXT("Unregistered Observer %p"), this);
 	MLObserversManager::UnregisterObserver(this);
 }
 
@@ -302,6 +304,7 @@ void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 #if WITH_EDITOR
 
 	if (BillboardComponent)

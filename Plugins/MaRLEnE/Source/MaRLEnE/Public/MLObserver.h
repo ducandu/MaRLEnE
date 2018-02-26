@@ -133,9 +133,9 @@ public:
 	UFUNCTION()
 	static TArray<UMLObserver *> GetRegisteredObservers();
 
+#if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent);
-
-	
+#endif
 
 protected:
 	// Called when the game starts

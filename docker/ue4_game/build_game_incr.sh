@@ -5,7 +5,8 @@ echo "GAME=$GAME"
 echo "UE4PYTHON_TAG=$UE4PYTHON_TAG"
 
 cd /home/ue4/marlene
-git pull origin master
+git fetch --all
+git reset --hard origin/master
 
 cd ../UnrealEnginePython
 git fetch

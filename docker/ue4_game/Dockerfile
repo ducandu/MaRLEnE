@@ -21,7 +21,6 @@ ENV GAME=$game
 ARG ue4python_tag=""
 ENV UE4PYTHON_TAG=$ue4python_tag
 
-RUN echo "b"
 RUN git config --global user.email "svenmika1977@gmail.com"
 RUN git config --global user.name "sven1977"
 COPY --chown=ue4:ue4 build_game_init.sh .

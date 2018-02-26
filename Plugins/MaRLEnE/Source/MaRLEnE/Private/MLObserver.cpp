@@ -301,11 +301,11 @@ void UMLObserver::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 	// ...
 }
 
-
+#if WITH_EDITOR
 void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-#if WITH_EDITOR
+
 
 	if (BillboardComponent)
 	{
@@ -316,6 +316,7 @@ void UMLObserver::PostEditChangeProperty(FPropertyChangedEvent & PropertyChanged
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyEditorModule.NotifyCustomizationModuleChanged();
-#endif
+
 }
+#endif
 

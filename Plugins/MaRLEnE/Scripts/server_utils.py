@@ -106,6 +106,7 @@ def get_scene_capture_and_texture(owner, observer):
     if len(scene_captures) > 0:
         scene_capture = scene_captures[0]
         texture = scene_capture.TextureTarget
+        ue.log("DEBUG: get_scene_capture_and_texture -> found a scene_capture; texture={}".format(texture))
     # then CameraComponent
     else:
         cameras = owner.get_actor_components_by_type(CameraComponent)
@@ -114,10 +115,13 @@ def get_scene_capture_and_texture(owner, observer):
             scene_capture = get_child_component(camera, SceneCaptureComponent2D)
             if scene_capture:
                 texture = scene_capture.TextureTarget
+                ue.log("DEBUG: get_scene_capture_and_texture -> found a camera with scene_capture comp; texture={}".format(texture))
             else:
-                scene_capture = owner.add_actor_component(SceneCaptureComponent2D, "MaRLEnEScreenCapture", camera)
+                scene_capture = owner.add_actor_component(SceneCaptureComponent2D, "MaRLEnE_SceneCapture", camera)
                 scene_capture.bCaptureEveryFrame = False
                 scene_capture.bCaptureOnMovement = False
+                ue.log("DEBUG: get_scene_capture_and_texture -> found a camera w/o scene_capture comp -> added it; texture={}".format(
+                    texture))
         # error -> return nothing
         else:
             raise RuntimeError("Observer {} has bScreenCapture set to true, but its owner does not possess either a "
@@ -127,7 +131,7 @@ def get_scene_capture_and_texture(owner, observer):
         # use MLObserver's width/height settings
         texture = scene_capture.TextureTarget =\
             ue.create_transient_texture_render_target2d(observer.Width or 84, observer.Height or 84)
-        ue.log("DEBUG: scene capture is created in get_scene_image texture={}".format(scene_capture.TextureTarget))
+        ue.log("DEBUG: scene capture is created in get_scene_image texture={} will return texture {}".format(scene_capture.TextureTarget, texture))
 
     return scene_capture, texture
 
@@ -142,6 +146,9 @@ def get_scene_capture_image(scene_capture, texture, gray_scale=False):
     :return: numpy array containing the pixel values (0-255) of the captured image
     :rtype: np.ndarray
     """
+    ue.log("DEBUG: In get_scene_capture_image(scene_capture={} texture={} gray_scale={})".
+           format(scene_capture, texture, gray_scale))
+
     # TODO: find out why image is not real-color (doesn't seem to be RGB encoded)
     # trigger the scene capture
     scene_capture.CaptureScene()

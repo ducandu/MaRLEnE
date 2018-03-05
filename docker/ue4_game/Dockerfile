@@ -17,7 +17,6 @@ ARG base_img=ducandu/ue4
 ENV BASE_IMG=$base_img
 ARG game=AlienInvaders
 ENV GAME=$game
-#ARG ue4python_tag=20180217
 ARG ue4python_tag=""
 ENV UE4PYTHON_TAG=$ue4python_tag
 

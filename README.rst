@@ -1,5 +1,6 @@
 Engine2learn
 ============
+
 Machine Learning Interface into the UE4 Game Engine.
 
 .. image:: images/python-logo.png
@@ -21,7 +22,7 @@ Connecting the Vagrant VM+Spark+Tensorflow world to the Game Dev world.
 
 
 What is Engine2Learn?
-+++++++++++++++++++++
+---------------------
 Engine2Learn is an UnrealEngine 4 (UE4) plugin as well as a python library. These two components together allow game developers and machine learning (ML)
 engineers to work hand in hand by connecting a highly parallelized ML pipeline (think: Spark and Tensorflow) with
 any UE4 game and use this game as a reinforcement learning (RL) environment.
@@ -39,7 +40,7 @@ environment (the "Env"), set a random seed for debugging purposes, step through 
 
 
 The UE4 Side
-------------
+++++++++++++
 Game developers can use the Engine2Learn UE4 plugin to specify actor properties in the game, whose values will be sent to the ML
 pipeline after each step (e.g. the health value of a character actor or enemy actor). Also, UE4 camera actors can be used as scene observers
 such that they send their pixel recordings as 3D-tensors (w x h x RGB) after each time step back to the connected ML client.
@@ -53,7 +54,7 @@ for example a Spark application running TensorflowOnSpark.
 
 
 The python (ML) Side
---------------------
+++++++++++++++++++++
 Once a control tcp connection into a running game has been initiated by an ML client, this client can send commands to the game and use the game as
 a learning environment.
 The environment is represented on the python side as an engine2learn.Env object and offers the following interface for ML algorithms:
@@ -67,7 +68,7 @@ The number of actual game ticks per step as well as a fake delta-time can be sen
 
 
 Quick setup
-+++++++++++
+-----------
 1) UE4-Plugin
 
 Before being able to work with the Engine2Learn UE4 plugin, you will need to install another UE4 plugin, called UnrealEnginePython, which is developed
@@ -88,7 +89,7 @@ pip install engine2learn
 
 
 Synopsis Python3 Script
-+++++++++++++++++++++++
+-----------------------
 
 - write a simple ML-agent against a UE4 game:
 
@@ -128,8 +129,8 @@ Synopsis Python3 Script
    (sorry about spygame's documentation still being work in progress).
 
 
-Contribute to Engine2Learn
-++++++++++++++++++++++++++
+Contribute to MaRLEnE
+---------------------
 If you would like to contribute to the Engine2Learn project, the following items are currently open:
 
 - create example games in UE4 that can be easily (or not so easily) reinforcement learnt

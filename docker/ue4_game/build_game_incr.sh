@@ -17,5 +17,6 @@ git pull
 cd
 cp -r -u marlene/examples/UE4Games/${GAME} UnrealEngine/.
 cp -r -u marlene/Plugins/MaRLEnE UnrealEngine/${GAME}/Plugins/.
+cp -r -u marlene/Plugins/ForceSoftwareRenderer UnrealEngine/${GAME}/Plugins/.
 cp -r -u UnrealEnginePython UnrealEngine/${GAME}/Plugins/.
 

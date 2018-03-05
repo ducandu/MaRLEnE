@@ -13,6 +13,7 @@ mkdir -p UnrealEngine/${GAME}/Plugins
 git clone https://github.com/ducandu/marlene.git
 cp -r marlene/examples/UE4Games/${GAME} UnrealEngine/.
 cp -r marlene/Plugins/MaRLEnE UnrealEngine/${GAME}/Plugins/.
+cp -r marlene/Plugins/ForceSoftwareRenderer UnrealEngine/${GAME}/Plugins/.
 
 git clone https://github.com/20tab/UnrealEnginePython.git
 cd UnrealEnginePython

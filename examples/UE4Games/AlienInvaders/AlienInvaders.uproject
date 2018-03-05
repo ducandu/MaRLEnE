@@ -147,6 +147,10 @@
 		{
 			"Name": "SteamVR",
 			"Enabled": false
+		},
+		{
+			"Name": "ForceSoftwareRenderer",
+			"Enabled": false
 		}
 	],
 	"TargetPlatforms": [

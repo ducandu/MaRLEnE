@@ -35,6 +35,9 @@ mnp.patch()
 
 sys.path.append("c:/program files/pycharm 2017.2.2/debug-eggs/")  # always need to add this to the sys.path (location of PyCharm debug eggs)
 
+ue.add_ticker(util.print_delta_time, 0)
+
+
 # cleanup previous tasks
 for task in asyncio.Task.all_tasks():
     task.cancel()
@@ -68,9 +71,12 @@ def reset(writer):
     #pydevd.settrace("localhost", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
     # END: DEBUG
 
-    ue.log("Resetting level.")
     # reset level
+    ue.log("Resetting level.")
     playing_world.restart_level()
+    # disable all rendering
+    ue.log("Disabling rendering.")
+    playing_world.get_game_viewport().game_viewport_client_set_rendering_flag(False)
 
     # enqueue pausing the game for upcoming tick
     asyncio.ensure_future(util.pause_game())
@@ -199,16 +205,16 @@ def step(message):
             controller.input_key(Key(KeyName=action[0]), EInputEvent.IE_Pressed if action[1] else EInputEvent.IE_Released)
 
     # unpause the game and then perform n ticks with the given inputs (actions and axes)
-    for _ in range(num_ticks):
+    for i in range(num_ticks):
         was_unpaused = GameplayStatics.SetGamePaused(playing_world, False)
         if not was_unpaused:
             ue.log("WARNING: un-pausing game for next step was not successful!")
 
-        # TODO: how do we collect rewards over the single ticks if we don't query the observers after each (have to always accumulate and compare to previous value)?
         playing_world.world_tick(delta_time, True)
 
-        # after the first tick, reset all action mappings to False again (otherwise sending True in two succinct steps would not(!) repeat the action)
-        if "actions" in message:
+        # After the first tick, reset all action mappings to False again
+        # (otherwise sending True in two succinct steps would not(!) repeat the action).
+        if i == 0 and "actions" in message:
             for action in message["actions"]:
                 controller.input_key(Key(KeyName=action[0]), EInputEvent.IE_Released)
 

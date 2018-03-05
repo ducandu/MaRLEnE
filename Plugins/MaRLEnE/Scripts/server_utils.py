@@ -39,6 +39,8 @@ def get_playing_world():
         if world.get_world_type() in (1, 3):  # game or pie
             playing_world = world
             break
+    # DEBUG: I want to know whether the world changes after reset, etc...
+    ue.log("DEBUG: playing world: {}".format(playing_world))
     return playing_world
 
 
@@ -136,25 +138,31 @@ def get_scene_capture_and_texture(owner, observer):
     return scene_capture, texture
 
 
-def get_scene_capture_image(scene_capture, texture, gray_scale=False):
+def get_scene_capture_image(playing_world, scene_capture, texture, gray_scale=False):
     """
     Takes a snapshot through a SceneCapture2DComponent and its Texture target and returns the image as a numpy array.
 
-    :param uobject scene_capture: The SceneCapture2DComponent uobject.
-    :param uobject texture: The TextureTarget uobject.
-    :param bool gray_scale: Whether to transform the image into gray-scale before returning.
-    :return: numpy array containing the pixel values (0-255) of the captured image
-    :rtype: np.ndarray
+    Args:
+        playing_world (uworld): The UWorld object of the running Game.
+        scene_capture (uobject): The SceneCapture2DComponent uobject.
+        texture (uobjects): The TextureTarget uobject.
+        gray_scale (bool): Whether to transform the image into gray-scale before returning.
+
+    Returns: Numpy array containing the pixel values (0-255) of the captured image.
     """
     ue.log("DEBUG: In get_scene_capture_image(scene_capture={} texture={} gray_scale={})".
            format(scene_capture, texture, gray_scale))
 
     # TODO: find out why image is not real-color (doesn't seem to be RGB encoded)
-    # trigger the scene capture
+    # trigger the scene capture (enable rendering only for this moment)
+    viewport = playing_world.get_game_viewport()
+    viewport.game_viewport_client_set_rendering_flag(True)
     scene_capture.CaptureScene()
     # TODO: copy the bytes into the same memory location each time to avoid garbage collection
     byte_string = bytes(texture.render_target_get_data())  # use render_target_get_data_to_buffer(data,[mipmap]?) instead
-    np_array = np.frombuffer(byte_string, dtype=np.uint8)  # convert to pixel values (0-255 uint8)
+    viewport.game_viewport_client_set_rendering_flag(False)
+    # convert to pixel values (0-255 uint8)
+    np_array = np.frombuffer(byte_string, dtype=np.uint8)
 
     # DEBUG
     #pydevd.settrace("192.168.2.107", port=20023, stdoutToServer=True, stderrToServer=True)  # DEBUG
@@ -177,10 +185,11 @@ def compile_obs_dict(reward=None):
     Compiles the current observations (based on all active MLObservers) into a dictionary that is returned to the
     UE4Env object's reset/step/... methods.
 
-    :param Union[float,None] reward: The absolute global accumulated reward value to set (mostly used to reset
-    everything to 0 after a new episode is started).
-    :returns: The obs_dict as a python dict (ready to be sent back to the client).
-    :rtype: dict
+    Args:
+        reward (Union[float,None]): The absolute global accumulated reward value to set (mostly used to reset
+            everything to 0 after a new episode is started).
+
+    Returns: The obs_dict as a python dict (ready to be sent back to the client).
     """
     global _REWARD
 
@@ -224,7 +233,7 @@ def compile_obs_dict(reward=None):
                     scene_capture, texture = get_scene_capture_and_texture(owner, observer)
                 except RuntimeError as e:
                     return {"status": "error", "message": "{}".format(e)}
-                img = get_scene_capture_image(scene_capture, texture, observer.bGrayscale)
+                img = get_scene_capture_image(playing_world, scene_capture, texture, observer.bGrayscale)
                 _OBS_DICT[obs_name + "/camera"] = img
 
             for observed_prop in observer.ObservedProperties:
@@ -344,4 +353,9 @@ def get_spec():
 # returns the UE project's name
 def get_project_name():
     return ue.get_mutable_default(GeneralProjectSettings).ProjectName
+
+
+def print_delta_time(dt):
+    ue.log_warning("dt={}".format(dt))
+    return True
 

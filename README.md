@@ -12,12 +12,12 @@ Connecting the game dev world with reinforcement learning research.
 
 
 ### What is MaRLEnE?
-MaRLEnE is a UE4 plugin that allows game developers and machine learning (ML) engineers
-to work hand in hand by connecting a highly parallelized ML pipeline (e.g. backed by TensorForce) with
-any UE4 game and use that game as a reinforcement learning environment.
-Our goal is to create smarter NPCs using state-of-the-art reinforcement learning (RL) methods and ML models.
+MaRLEnE is a UE4 extension that allows game developers and reinforcement learning (RL) engineers
+to work hand in hand by connecting a highly parallelized RL pipeline (e.g. backed by TensorForce) with
+any UE4 game and use that game as an RL environment.
+Our goal is to create smarter NPCs using state-of-the-art deep learning (DL) methods and models.
 
-The Plugin is supported by TensorForce, a powerful RL library interface allowing algorithms to reset the game
+The Plugin is supported by TensorForce, a powerful RL library, allowing algorithms to reset the game
 environment (the "Env"), and then step through it (tick by tick), thereby executing different actions (called action- and axis-mappings in UE4) at
 different time steps.
 
@@ -30,9 +30,6 @@ In the future, we will make audio- and sound-observations available to the ML-si
 
 Game developers need to specify a port (via the plugin's settings), on which the game will listen for incoming ML control connections.
 
-MaRLEnE also controls automatic building/packaging/cooking procedures of ML-ready games from the UE4 Editor into the
-highly parallelized ML-world (our plugin deploys one game to 100s of ML nodes automatically and starts a specified ML script).
-
 
 ### The python side (ML engineers)
 Once a control connection into a running game has been initiated by your ML pipeline (e.g. TensorForce at github.com/reinforceio/tensorforce),
@@ -42,19 +39,19 @@ The environment is represented on the python side as an Env object and offers th
 - seed: Set the random seed to some fixed value (for debugging and pseudo-random (reproducible) game play).
 - reset: Set the game to its initial state.
 - step: Perform a single tick (step) on the game by sending "action" information to UE4 (axis- and/or action-mappings).
-The step method returns an observation (following the single step), which can be used by the ML algorithm to update a mathematical model.
+The step method returns an observation (following the single step), which can be used by the ML algorithm to update e.g. a neural network.
 
 ### Quick setup
 1) Get the latest UnrealEngine 4 for PC/Mac/Linux. Go to [UnrealEngine.com](unrealengine.com), then download and install the latest version of UE4.
 2) Create your game and add the two Plugins: MaRLEnE (see Plugins folder of this repo) and [UnrealEnginePython](https://github.com/20tab/UnrealEnginePython) to the project (need a local python executable to make this work), recompile your UE4 project with these two plugins added and activate them in your game.
-3) Use your favorite RL framework to run experiments against the MaRLEnE UE4 Envs.
+3) Use your favorite RL framework (e.g. `pip install tensorforce`) to run experiments against the MaRLEnE UE4 Envs.
 See below Synopsis for an example run with TensorForce.
 
 
 ### Synopsis with TensorForce
 ```python3
 
-from tensorforce.contrib.unreal_engine import unreal_engine
+from tensorforce.contrib.unreal_engine import UE4Environment
 import random
 
 

@@ -8,6 +8,8 @@ Connecting the game dev world with reinforcement learning research.
 
 ![Screenshot from AlienInvaders by https://ue4resources.com](https://github.com/ducandu/MaRLEnE/raw/master/docs/images/alien_invaders_screenshot.png "Alien Invaders (by Elhoussine Mehnik) learnt via TensorForce")
 
+<sup>Alien Invaders (by [Elhoussine Mehnik](http://ue4resources.com)) learnt via TensorForce</sup>
+
 
 ### What is MaRLEnE?
 MaRLEnE is a UE4 plugin that allows game developers and machine learning (ML) engineers
@@ -43,8 +45,9 @@ The environment is represented on the python side as an Env object and offers th
 The step method returns an observation (following the single step), which can be used by the ML algorithm to update a mathematical model.
 
 ### Quick setup
-1) Get the latest UnrealEngine 4 for PC/Mac/Linux.
-Go to [![UnrealEngine.com](unrealengine.com)], then download and install the latest version of UE4.
+1) Get the latest UnrealEngine 4 for PC/Mac/Linux. Go to [UnrealEngine.com](unrealengine.com), then download and install the latest version of UE4.
+2) Use your favorite RL framework to run experiments against the MaRLEnE UE4 Envs.
+See below Synopsis for an example run with TensorForce.
 
 
 ### Synopsis with TensorForce

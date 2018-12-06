@@ -4,7 +4,10 @@ MaRLEnE - Machine- and Reinforcement Learning ExtensioN for (game) Engines
 [![Docs](https://readthedocs.org/projects/engine2learn/badge)](http://engine2learn.readthedocs.io/en/latest/)
 
 
-Connecting the Vagrant VM+Spark+Tensorflow world to the Game Dev world.
+Connecting the game dev world with reinforcement learning research.
+
+![Screenshot from AlienInvaders by https://ue4resources.com](https://github.com/ducandu/MaRLEnE/raw/master/docs/images/alien_invaders_screenshot.png "Alien Invaders (by Elhoussine Mehnik) learnt via TensorForce")
+
 
 ### What is MaRLEnE?
 MaRLEnE is a UE4 plugin that allows game developers and machine learning (ML) engineers

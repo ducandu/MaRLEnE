@@ -8,7 +8,7 @@ Connecting the game dev world with reinforcement learning research.
 
 ![Screenshot from AlienInvaders by https://ue4resources.com](https://github.com/ducandu/MaRLEnE/raw/master/docs/images/alien_invaders_screenshot.png "Alien Invaders (by Elhoussine Mehnik) learnt via TensorForce")
 
-<sup>Alien Invaders (by [Elhoussine Mehnik](http://ue4resources.com)) learnt via TensorForce</sup>
+<sup>Alien Invaders ((c) by [Elhoussine Mehnik](http://ue4resources.com)) learnt via TensorForce</sup>
 
 
 ### What is MaRLEnE?

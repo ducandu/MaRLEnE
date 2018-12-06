@@ -46,7 +46,8 @@ The step method returns an observation (following the single step), which can be
 
 ### Quick setup
 1) Get the latest UnrealEngine 4 for PC/Mac/Linux. Go to [UnrealEngine.com](unrealengine.com), then download and install the latest version of UE4.
-2) Use your favorite RL framework to run experiments against the MaRLEnE UE4 Envs.
+2) Create your game and add the two Plugins: MaRLEnE (see Plugins folder of this repo) and [UnrealEnginePython](https://github.com/20tab/UnrealEnginePython) to the project (need a local python executable to make this work), recompile your UE4 project with these two plugins added and activate them in your game.
+3) Use your favorite RL framework to run experiments against the MaRLEnE UE4 Envs.
 See below Synopsis for an example run with TensorForce.
 
 

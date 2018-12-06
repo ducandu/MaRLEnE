@@ -1,5 +1,5 @@
-engine2learn - A Machine Learning Interface into the UE4 Game Engine
-====================================================================
+MaRLEnE - Machine- and Reinforcement Learning ExtensioN for (game) Engines
+==========================================================================
 
 [![Docs](https://readthedocs.org/projects/engine2learn/badge)](http://engine2learn.readthedocs.io/en/latest/)
 

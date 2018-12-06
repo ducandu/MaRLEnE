@@ -1,3 +1,7 @@
+# custom
+_old_vagrant_stuff/
+_old_ue4_exec_game/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

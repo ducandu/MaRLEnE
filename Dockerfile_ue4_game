@@ -19,22 +19,36 @@ ARG game=AlienInvaders
 ENV GAME=$game
 ARG ue4python_tag=""
 ENV UE4PYTHON_TAG=$ue4python_tag
+ARG local=false
+ENV BUILD_FROM_LOCAL=$local
 
 RUN git config --global user.email "svenmika1977@gmail.com"
 RUN git config --global user.name "sven1977"
-COPY --chown=ue4:ue4 build_game_init.sh .
-COPY --chown=ue4:ue4 build_game_incr.sh .
+
+COPY --chown=ue4:ue4 docker/ue4_game/build_game_init.sh .
+COPY --chown=ue4:ue4 docker/ue4_game/build_game_incr.sh .
+COPY --chown=ue4:ue4 docker/ue4_game/build_game_local.sh .
+
 RUN dos2unix build_game_init.sh
 RUN dos2unix build_game_incr.sh
-RUN chmod 0777 build_game_init.sh && chmod 0777 build_game_incr.sh
-RUN if [ "${BASE_IMG}" = "ducandu/ue4" ] ; then /bin/sh ./build_game_init.sh ; else /bin/sh ./build_game_incr.sh ; fi
+RUN dos2unix build_game_local.sh
+
+RUN chmod 0777 build_*.sh
+
+# just in case if BUILD_FROM_LOCAL==true: copy local MaRLEnE plugin into container (no need to go to git all the time)
+COPY --chown=ue4:ue4 Plugins/MaRLEnE local_marlene
+COPY --chown=ue4:ue4 examples local_examples
+
+# TODO: nix difference between these scripts: they should always try to pull from github (if doesn't exist, clone). Only if "local": Copy from local Marlene (plugin, scripts & example games) instead.
+RUN if [ "${BUILD_FROM_LOCAL}" = "true" ] ; then /bin/sh ./build_game_local.sh ; elif [ "${BASE_IMG}" = "ducandu/ue4" ] ; then /bin/sh ./build_game_init.sh ; else /bin/sh ./build_game_incr.sh ; fi
+
 WORKDIR UnrealEngine
 ## Modify the UnrealEnginePython build cs file to add the python lib and include paths
 # not necessary as ubuntu is covered by the default values in UEPython build cs
 #RUN sed -i 's/\/usr\/local\/include\/python3.6//' AlienInvaders/Plugins/UnrealEnginePython/Source/UnrealEnginePython/UnrealEnginePython.Build.cs
 
-# TODO: remove again (overwrite UEPython plugin as it's sometimes full of build errors)
-#COPY --chown=ue4:ue4 test ${GAME}/Plugins
+# TODO: Temporarily: copy fixed driver cpp file into container's UE4 source code
+COPY --chown=ue4:ue4 docker/ue4_game/OpenGLDrv.cpp Engine/Source/Runtime/OpenGLDrv/Private/.
 
 # - copy necessary scripts from the plugin to the game's content folder
 RUN mkdir -p ${GAME}/Content/Scripts/

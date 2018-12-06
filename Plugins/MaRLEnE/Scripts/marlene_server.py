@@ -21,6 +21,8 @@ from unreal_engine.classes import MaRLEnESettings, GameplayStatics, InputSetting
 from unreal_engine.structs import Key
 from unreal_engine.enums import EInputEvent
 import os
+import cProfile, pstats, io
+import time
 
 import msgpack
 import msgpack_numpy as mnp
@@ -72,10 +74,9 @@ def reset(writer):
     # END: DEBUG
 
     # reset level
-    ue.log("Resetting level.")
+    ue.log("Resetting level, disabling rendering.")
     playing_world.restart_level()
     # disable all rendering
-    ue.log("Disabling rendering.")
     playing_world.get_game_viewport().game_viewport_client_set_rendering_flag(False)
 
     # enqueue pausing the game for upcoming tick
@@ -208,7 +209,7 @@ def step(message):
     for i in range(num_ticks):
         was_unpaused = GameplayStatics.SetGamePaused(playing_world, False)
         if not was_unpaused:
-            ue.log("WARNING: un-pausing game for next step was not successful!")
+            ue.log_warning("Un-pausing game for next step was not successful!")
 
         playing_world.world_tick(delta_time, True)
 
@@ -221,7 +222,7 @@ def step(message):
         # pause again
         was_paused = GameplayStatics.SetGamePaused(playing_world, True)
         if not was_paused:
-            ue.log("->WARNING: re-pausing game after step was not successful!")
+            ue.log_warning("Re-pausing game after step was not successful!")
 
     return util.compile_obs_dict()
 
@@ -235,8 +236,6 @@ def manage_message(message, writer):
     :return: A response dict to be sent back to the client.
     :rtype: dict
     """
-    print(message)
-
     if "cmd" not in message:
         return {"status": "error", "message": "Field 'cmd' missing in message!"}
     cmd = message["cmd"]
@@ -266,6 +265,11 @@ async def new_client_connected(reader, writer):
     name = writer.get_extra_info("peername")
     ue.log("New client connection from {0}".format(name))
     unpacker = msgpack.Unpacker(encoding="utf-8")
+
+    # profile for n minutes after a connection
+    #t = time.time()
+    #last_prof = {}  # last time we profiled
+
     while True:
         # wait for a line
         data = await reader.read(8)  # read the num-byte header
@@ -290,15 +294,29 @@ async def new_client_connected(reader, writer):
 
         # Get the data.
         for message in unpacker:
+            #response = None
             if not isinstance(message, dict):
                 response = {"status": "error", "message": "Unknown message type ({})!".format(type(message).__name__)}
             else:
+                #cmd = message.get("cmd")
+                #if cmd not in last_prof or t > last_prof[cmd] + 30:
+                #    pr = cProfile.Profile()
+                #    pr.enable()
+                #    response = manage_message(message, writer)
+                #    pr.disable()
+                #    s = io.StringIO()
+                #    ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+                #    ps.dump_stats("prof.{}.{}".format(cmd, int(t)))
+                #    last_prof[cmd] = t
+                #else:
                 response = manage_message(message, writer)
 
             # write back immediately
             if response:
                 send_message(response, writer)
             # async calls -> do nothing here (async will handle it)
+
+        #t = time.time()
 
     ue.log("Client {0} disconnected".format(name))
 
@@ -308,14 +326,14 @@ async def new_client_connected(reader, writer):
 async def spawn_server(host, port):
     co_routine = None
     try:
-        ue.log('Trying to start listen server on {0}:{1}.'.format(host, port))
+        ue.log("Trying to start listen server on {0}:{1}.".format(host, port))
         co_routine = await asyncio.start_server(new_client_connected, host, port)
-        ue.log('Server spawned.')
+        ue.log("Server spawned.")
         await co_routine.wait_closed()
     finally:
         if co_routine:
             co_routine.close()
-        ue.log('tcp server ended')
+        ue.log("TCP server ended")
 
     
 """
